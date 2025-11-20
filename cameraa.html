@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Polaroid Camera</title>
+    <title>My Polaroid Album</title>
     <style>
         /* 1. 전체 배치 */
         body {
@@ -71,7 +71,7 @@
             width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);
         }
 
-        /* 셔터 버튼 스타일 */
+        /* 셔터 버튼 */
         .shutter-btn {
             position: absolute;
             bottom: 35px; left: 25px;
@@ -84,11 +84,7 @@
             transition: transform 0.1s;
         }
         .shutter-btn:active { transform: scale(0.9); }
-        /* 비활성화(찍는 중) 상태일 때 */
-        .shutter-btn.disabled {
-            background-color: #ccc;
-            pointer-events: none; /* 클릭 불가 */
-        }
+        .shutter-btn.disabled { background-color: #ccc; pointer-events: none; }
 
         .print-slot {
             position: absolute;
@@ -148,7 +144,7 @@
             font-size: 8px; margin-top: 5px; color: #555;
         }
 
-        /* 4. 이동 애니메이션용 */
+        /* 4. 애니메이션용 */
         .flying-photo {
             position: fixed;
             width: 140px;
@@ -161,7 +157,7 @@
         }
         .flying-photo img { width: 100%; display: block; }
 
-        /* 5. 확대 보기 모달 & 저장 버튼 */
+        /* 5. 모달 & 버튼 */
         .modal {
             display: none; position: fixed; z-index: 2000;
             left: 0; top: 0; width: 100%; height: 100%;
@@ -174,7 +170,7 @@
         .modal-content {
             position: relative;
             max-width: 90%;
-            max-height: 70vh;
+            max-height: 65vh;
             background: white;
             padding: 15px 15px 50px 15px;
             border-radius: 4px;
@@ -184,24 +180,32 @@
 
         .modal-content img {
             max-width: 100%;
-            max-height: 60vh;
+            max-height: 55vh;
             display: block;
         }
 
-        .save-btn {
+        .btn-group {
             margin-top: 20px;
-            padding: 12px 30px;
-            background-color: #ff7f50;
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 12px 20px;
             color: white;
             border: none;
             border-radius: 30px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 127, 80, 0.4);
-            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+            display: flex; align-items: center; gap: 5px;
         }
-        .save-btn:active { transform: scale(0.95); background-color: #ff6347; }
+        .action-btn:active { transform: scale(0.95); }
+        
+        .save-btn { background-color: #ff7f50; }
+        .del-btn { background-color: #555; }
 
         .close-msg {
             margin-top: 15px; color: rgba(255,255,255,0.6); font-size: 12px;
@@ -239,8 +243,13 @@
             <img id="modalImg" src="">
             <div style="margin-top:10px; font-size:12px; color:#666; font-family:'Courier New'">#Memory</div>
         </div>
-        <button class="save-btn" onclick="downloadPhoto()">💾 사진 저장하기</button>
-        <div class="close-msg" onclick="closeModal()">[ 닫기: 화면의 빈 곳 클릭 ]</div>
+        
+        <div class="btn-group">
+            <button class="action-btn save-btn" onclick="downloadPhoto()">💾 저장</button>
+            <button class="action-btn del-btn" onclick="deleteCurrentPhoto()">🗑 삭제</button>
+        </div>
+
+        <div class="close-msg" onclick="closeModal()">[ 닫기: 화면 빈 곳 터치 ]</div>
     </div>
 
     <div class="main-container">
@@ -270,9 +279,34 @@
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modalImg');
         
-        let currentPhotoUrl = "";
-        let isProcessing = false; // 중복 촬영 방지용 깃발
+        let isProcessing = false;
+        let currentPhotoData = null; // 현재 선택된 사진 데이터 (삭제용)
 
+        // === 1. 데이터베이스 설정 (IndexedDB) ===
+        let db;
+        const DB_NAME = 'PolaroidDB';
+        const STORE_NAME = 'photos';
+
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            // id를 키로 사용하는 저장소 생성
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            loadSavedPhotos(); // DB 연결되면 저장된 사진 불러오기
+        };
+
+        request.onerror = (event) => {
+            console.error("DB 에러:", event.target.errorCode);
+        };
+
+        // === 2. 카메라 시작 ===
         async function startCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -281,20 +315,17 @@
                 });
                 video.srcObject = stream;
             } catch (err) {
-                alert("카메라 접근 권한이 필요합니다.");
+                alert("카메라 권한이 필요합니다.");
             }
         }
 
+        // === 3. 사진 촬영 ===
         function takePhoto() {
-            // 1. 이미 찍고 있는 중이면 무시 (중복 방지 핵심)
-            if (isProcessing) return;
-            if (video.readyState < 2) return;
+            if (isProcessing || video.readyState < 2) return;
 
-            // 2. "찍는 중" 상태로 변경 및 버튼 비활성화
             isProcessing = true;
             shutterBtn.classList.add('disabled');
 
-            // 3. 플래시 및 촬영
             flash.classList.add('active');
             setTimeout(() => flash.classList.remove('active'), 150);
 
@@ -306,20 +337,95 @@
             ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0);
             
-            const imgUrl = canvas.toDataURL('image/jpeg', 0.9);
-            animatePhotoTransfer(imgUrl);
+            const imgUrl = canvas.toDataURL('image/jpeg', 0.85); // 용량 최적화
+            const now = new Date();
+            const photoData = {
+                id: now.getTime(), // 고유 ID (시간)
+                url: imgUrl,
+                date: `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+            };
 
-            // 4. 1.2초 뒤에 다시 찍을 수 있게 풀어줌 (애니메이션 시간과 비슷하게)
+            // DB에 저장
+            savePhotoToDB(photoData);
+
+            // 애니메이션 실행
+            animatePhotoTransfer(photoData);
+
             setTimeout(() => {
                 isProcessing = false;
                 shutterBtn.classList.remove('disabled');
             }, 1200);
         }
 
-        function animatePhotoTransfer(url) {
+        // === 4. DB 관련 함수 ===
+        function savePhotoToDB(data) {
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            store.add(data);
+        }
+
+        function loadSavedPhotos() {
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const photos = request.result;
+                // 최신순으로 정렬하지 않으면 옛날 사진이 먼저 나옴
+                // 여기선 단순하게 로드 후 역순 정렬
+                // (DB 키가 시간순이라 그냥 역순으로 뿌리면 됨)
+                /* 기존 갤러리 비우지 않고 추가하려면 로직 복잡해지니,
+                   초기 로딩은 한번 싹 비우고 다시 채우는게 안전 */
+                // 단, 애니메이션 중인 사진이 있을 수 있으니 제목만 남기고 비움
+                while(gallery.children.length > 1) {
+                    gallery.removeChild(gallery.lastChild);
+                }
+                
+                // 최신순으로 보여주기 위해 뒤집기
+                photos.reverse().forEach(photo => {
+                    renderPhotoItem(photo);
+                });
+            };
+        }
+
+        function deleteCurrentPhoto() {
+            if (!currentPhotoData) return;
+            
+            if(confirm("정말 이 사진을 삭제할까요?")) {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                store.delete(currentPhotoData.id);
+
+                transaction.oncomplete = () => {
+                    closeModal();
+                    // UI에서도 해당 사진 제거 (id로 찾기)
+                    const item = document.getElementById(`photo-${currentPhotoData.id}`);
+                    if(item) item.remove();
+                };
+            }
+        }
+
+        // === 5. UI 렌더링 및 애니메이션 ===
+        function renderPhotoItem(data) {
+            const item = document.createElement('div');
+            item.className = 'photo-item';
+            item.id = `photo-${data.id}`; // 삭제를 위해 ID 부여
+            
+            item.innerHTML = `<img src="${data.url}"><div class="date">${data.date}</div>`;
+            item.onclick = () => openModal(data);
+
+            // 갤러리 제목 다음(맨 앞)에 추가
+            if(gallery.children.length > 1) {
+                 gallery.insertBefore(item, gallery.children[1]);
+            } else {
+                gallery.appendChild(item);
+            }
+        }
+
+        function animatePhotoTransfer(data) {
             const flyer = document.createElement('div');
             flyer.className = 'flying-photo';
-            flyer.innerHTML = `<img src="${url}">`;
+            flyer.innerHTML = `<img src="${data.url}">`;
             document.body.appendChild(flyer);
 
             const startRect = printSlot.getBoundingClientRect();
@@ -335,35 +441,20 @@
                 { top: targetY + 'px', left: targetX + 'px', transform: 'scale(0.7) rotate(5deg)', opacity: 1, offset: 1 }
             ], { duration: 1200, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => {
                 flyer.remove();
-                addPhotoToGallery(url);
+                renderPhotoItem(data); // 애니메이션 끝나면 갤러리에 표시
             };
         }
 
-        function addPhotoToGallery(url) {
-            const item = document.createElement('div');
-            item.className = 'photo-item';
-            
-            const now = new Date();
-            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-            
-            item.innerHTML = `<img src="${url}"><div class="date">${dateStr}</div>`;
-            item.onclick = () => openModal(url);
-
-            if(gallery.children.length > 1) {
-                 gallery.insertBefore(item, gallery.children[1]);
-            } else {
-                gallery.appendChild(item);
-            }
-        }
-
-        function openModal(url) {
-            modalImg.src = url;
-            currentPhotoUrl = url;
+        // === 6. 모달 및 다운로드 ===
+        function openModal(data) {
+            currentPhotoData = data;
+            modalImg.src = data.url;
             modal.style.display = 'flex';
         }
 
         function closeModal() {
             modal.style.display = 'none';
+            currentPhotoData = null;
         }
 
         modal.addEventListener('click', (e) => {
@@ -373,24 +464,17 @@
         });
 
         function downloadPhoto() {
-            if (!currentPhotoUrl) return;
+            if (!currentPhotoData) return;
             const link = document.createElement('a');
-            link.href = currentPhotoUrl;
-            const now = new Date();
-            const timestamp = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}_${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
-            link.download = `polaroid_${timestamp}.jpg`;
+            link.href = currentPhotoData.url;
+            link.download = `polaroid_${currentPhotoData.id}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
-        // 이벤트 리스너 정리: 터치와 클릭이 중복되어도 함수 내부에서 막아줌
         shutterBtn.addEventListener('click', takePhoto);
-        shutterBtn.addEventListener('touchstart', (e) => { 
-            e.preventDefault(); 
-            takePhoto(); 
-        });
-
+        shutterBtn.addEventListener('touchstart', (e) => { e.preventDefault(); takePhoto(); });
         startCamera();
     </script>
 </body>
