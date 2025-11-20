@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Polaroid Stack</title>
+    <title>Polaroid Camera</title>
     <style>
         /* 1. 전체 배치 */
         body {
@@ -20,18 +20,18 @@
             touch-action: manipulation;
         }
 
-        /* 2. 메인 컨테이너 (카메라 + 갤러리) */
+        /* 2. 메인 컨테이너 */
         .main-container {
             display: flex;
             align-items: flex-start;
-            gap: 30px; /* 카메라와 갤러리 사이 간격 */
+            gap: 30px;
             padding: 20px;
         }
 
         /* 카메라 영역 */
         .camera-section {
             position: relative;
-            z-index: 20; /* 갤러리보다 위에 보이게 */
+            z-index: 20;
         }
 
         /* 카메라 디자인 */
@@ -84,7 +84,6 @@
         }
         .shutter-btn:active { transform: scale(0.9); }
 
-        /* 사진 나오는 구멍 */
         .print-slot {
             position: absolute;
             top: -10px; left: 50%;
@@ -95,23 +94,21 @@
             z-index: 10;
         }
 
-        /* 3. 갤러리 보관함 (오른쪽) */
+        /* 3. 갤러리 보관함 */
         .gallery-box {
             width: 360px;
-            height: 500px; /* 넉넉한 높이 */
+            height: 500px;
             background: rgba(255, 255, 255, 0.5);
             border-radius: 20px;
             padding: 20px;
             box-shadow: inset 2px 2px 10px rgba(0,0,0,0.1);
-            overflow-y: auto; /* 스크롤 */
-            
+            overflow-y: auto;
             display: flex;
-            flex-wrap: wrap; /* 줄바꿈 */
+            flex-wrap: wrap;
             align-content: flex-start;
             gap: 15px;
         }
 
-        /* 보관함 제목 */
         .gallery-title {
             width: 100%;
             text-align: center;
@@ -123,9 +120,8 @@
             padding-bottom: 5px;
         }
 
-        /* 4. 사진 아이템 스타일 */
         .photo-item {
-            width: 100px; /* 보관함용 작은 크기 */
+            width: 100px;
             background: #fff;
             padding: 5px 5px 20px 5px;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
@@ -146,10 +142,10 @@
             font-size: 8px; margin-top: 5px; color: #555;
         }
 
-        /* 5. 이동 애니메이션용 임시 사진 */
+        /* 4. 이동 애니메이션용 */
         .flying-photo {
-            position: fixed; /* 화면 기준 절대 좌표 */
-            width: 140px; /* 날아갈 땐 약간 큼 */
+            position: fixed;
+            width: 140px;
             background: white;
             padding: 8px 8px 30px 8px;
             box-shadow: 5px 5px 20px rgba(0,0,0,0.3);
@@ -159,18 +155,58 @@
         }
         .flying-photo img { width: 100%; display: block; }
 
-        /* 확대 보기 모달 */
+        /* 5. 확대 보기 모달 & 저장 버튼 */
         .modal {
             display: none; position: fixed; z-index: 2000;
             left: 0; top: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            flex-direction: column; /* 세로 배치 */
             justify-content: center; align-items: center;
         }
-        .modal img {
-            max-width: 90%; max-height: 80vh;
-            border: 10px solid #fff; border-bottom: 50px solid #fff;
-            border-radius: 5px;
+
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 70vh;
+            background: white;
+            padding: 15px 15px 50px 15px; /* 폴라로이드 여백 */
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
         }
+
+        .modal-content img {
+            max-width: 100%;
+            max-height: 60vh;
+            display: block;
+        }
+
+        /* 저장 버튼 스타일 */
+        .save-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background-color: #ff7f50;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 127, 80, 0.4);
+            transition: transform 0.1s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .save-btn:active { transform: scale(0.95); background-color: #ff6347; }
+
+        .close-msg {
+            margin-top: 15px;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+        }
+
         .flash {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: white; opacity: 0; pointer-events: none; z-index: 1000;
@@ -178,10 +214,9 @@
         .flash.active { animation: flash 0.15s; }
         @keyframes flash { 0% { opacity: 0.8; } 100% { opacity: 0; } }
 
-        /* 모바일 반응형 (세로 배치) */
         @media (max-width: 768px) {
             .main-container {
-                flex-direction: column; /* 위아래 배치 */
+                flex-direction: column;
                 align-items: center;
                 gap: 20px;
                 width: 100%;
@@ -189,37 +224,32 @@
                 padding-top: 20px;
                 box-sizing: border-box;
             }
-            
-            .camera-body {
-                transform: scale(0.85); /* 카메라 조금 작게 */
-                margin-bottom: -20px;
-            }
-
+            .camera-body { transform: scale(0.85); margin-bottom: -20px; }
             .gallery-box {
-                width: 90%; /* 너비 꽉 차게 */
-                flex: 1; /* 남은 공간 다 쓰기 */
-                height: auto;
-                overflow-x: auto; /* 가로 스크롤 */
-                flex-wrap: nowrap; /* 한 줄로 */
-                align-content: center;
-                align-items: center;
-                padding: 10px;
-                background: rgba(255,255,255,0.6);
+                width: 90%; flex: 1; height: auto;
+                overflow-x: auto; flex-wrap: nowrap;
+                align-content: center; align-items: center;
+                padding: 10px; background: rgba(255,255,255,0.6);
             }
-            .gallery-title { display: none; } /* 모바일엔 제목 숨김 */
-            
-            .photo-item {
-                flex: 0 0 auto; /* 크기 고정 */
-                margin-right: 10px;
-            }
+            .gallery-title { display: none; }
+            .photo-item { flex: 0 0 auto; margin-right: 10px; }
         }
     </style>
 </head>
 <body>
     <div class="flash" id="flash"></div>
 
-    <div class="modal" id="modal" onclick="this.style.display='none'">
-        <img id="modalImg" src="">
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <img id="modalImg" src="">
+            <div style="margin-top:10px; font-size:12px; color:#666; font-family:'Courier New'">#Memory</div>
+        </div>
+        
+        <button class="save-btn" id="saveBtn" onclick="downloadPhoto()">
+            💾 사진 저장하기
+        </button>
+        
+        <div class="close-msg" onclick="closeModal()">[ 닫기: 화면의 빈 곳 클릭 ]</div>
     </div>
 
     <div class="main-container">
@@ -237,7 +267,7 @@
 
         <div class="gallery-box" id="gallery">
             <div class="gallery-title">MY PHOTO ALBUM</div>
-            </div>
+        </div>
     </div>
 
     <script>
@@ -246,8 +276,12 @@
         const gallery = document.getElementById('gallery');
         const printSlot = document.getElementById('printSlot');
         const flash = document.getElementById('flash');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
         
-        // 1. 카메라 켜기
+        let currentPhotoUrl = ""; // 현재 보고 있는 사진 URL 저장
+
+        // 1. 카메라 시작
         async function startCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -256,20 +290,17 @@
                 });
                 video.srcObject = stream;
             } catch (err) {
-                console.error(err);
-                alert("카메라 접근 권한을 허용해주세요!");
+                alert("카메라 접근 권한이 필요합니다.");
             }
         }
 
-        // 2. 사진 찍기
+        // 2. 촬영
         function takePhoto() {
-            if(video.readyState < 2) return; // 비디오 준비 안됨
+            if(video.readyState < 2) return;
 
-            // 플래시
             flash.classList.add('active');
             setTimeout(() => flash.classList.remove('active'), 150);
 
-            // 캡처
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -279,112 +310,89 @@
             ctx.drawImage(video, 0, 0);
             
             const imgUrl = canvas.toDataURL('image/jpeg', 0.9);
-            
-            // 이동 애니메이션 시작
             animatePhotoTransfer(imgUrl);
         }
 
-        // 3. 이동 애니메이션 (핵심!)
+        // 3. 이동 애니메이션
         function animatePhotoTransfer(url) {
-            // A. 임시 사진 생성 (날아갈 녀석)
             const flyer = document.createElement('div');
             flyer.className = 'flying-photo';
             flyer.innerHTML = `<img src="${url}">`;
             document.body.appendChild(flyer);
 
-            // B. 출발지 좌표 (카메라 구멍)
             const startRect = printSlot.getBoundingClientRect();
-            
-            // C. 도착지 좌표 (갤러리 박스 안쪽)
-            // 갤러리에 첫 번째 자식요소가 있으면 그 앞, 없으면 박스 시작점
             const galleryRect = gallery.getBoundingClientRect();
-            let targetX, targetY;
-            
-            // 모바일인지 확인
             const isMobile = window.innerWidth <= 768;
 
-            if(isMobile) {
-                // 모바일: 카메라 아래쪽으로 이동
-                targetX = galleryRect.left + 20; 
-                targetY = galleryRect.top + 20;
-            } else {
-                // PC: 카메라 오른쪽 보관함으로 이동
-                targetX = galleryRect.left + 20;
-                targetY = galleryRect.top + 40;
-            }
+            let targetX = isMobile ? galleryRect.left + 20 : galleryRect.left + 20;
+            let targetY = isMobile ? galleryRect.top + 20 : galleryRect.top + 40;
 
-            // D. 초기 위치 설정 (카메라 구멍 뒤)
-            flyer.style.left = startRect.left + 'px';
-            flyer.style.top = (startRect.top + 20) + 'px'; // 구멍 안쪽
-            flyer.style.transform = 'scale(0.2)';
-            flyer.style.opacity = '0';
-
-            // E. 애니메이션 시퀀스
-            const animation = flyer.animate([
-                // 1단계: 구멍에서 쑥 나옴 (Printing)
-                { 
-                    top: (startRect.top + 20) + 'px', 
-                    left: startRect.left + 'px',
-                    transform: 'scale(0.8)', 
-                    opacity: 1,
-                    offset: 0 
-                },
-                { 
-                    top: (startRect.top - 80) + 'px', // 위로 조금만 올라옴
-                    left: startRect.left + 'px',
-                    transform: 'scale(1)', 
-                    opacity: 1,
-                    offset: 0.4 // 40% 지점까지 출력
-                },
-                // 2단계: 보관함으로 날아감 (Moving)
-                { 
-                    top: targetY + 'px', 
-                    left: targetX + 'px', 
-                    transform: 'scale(0.7) rotate(5deg)', // 갤러리 사이즈로 축소
-                    opacity: 1,
-                    offset: 1 
-                }
-            ], {
-                duration: 1200, // 1.2초 동안 실행
-                easing: 'ease-in-out',
-                fill: 'forwards'
-            });
-
-            // F. 애니메이션 끝나면 진짜 갤러리에 넣기
-            animation.onfinish = () => {
-                flyer.remove(); // 날아가던 건 삭제
-                addPhotoToGallery(url); // 갤러리에 진짜 추가
+            flyer.animate([
+                { top: (startRect.top + 20) + 'px', left: startRect.left + 'px', transform: 'scale(0.8)', opacity: 1, offset: 0 },
+                { top: (startRect.top - 80) + 'px', left: startRect.left + 'px', transform: 'scale(1)', opacity: 1, offset: 0.4 },
+                { top: targetY + 'px', left: targetX + 'px', transform: 'scale(0.7) rotate(5deg)', opacity: 1, offset: 1 }
+            ], { duration: 1200, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => {
+                flyer.remove();
+                addPhotoToGallery(url);
             };
         }
 
-        // 4. 갤러리 추가 함수
+        // 4. 갤러리 추가
         function addPhotoToGallery(url) {
             const item = document.createElement('div');
             item.className = 'photo-item';
             
             const now = new Date();
-            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             
             item.innerHTML = `<img src="${url}"><div class="date">${dateStr}</div>`;
-            
-            // 클릭하면 확대
-            item.onclick = () => {
-                document.getElementById('modalImg').src = url;
-                document.getElementById('modal').style.display = 'flex';
-            };
+            item.onclick = () => openModal(url);
 
-            // 맨 앞에 추가 (Prepend)
-            if(gallery.children.length > 1) { // 제목(Title) 다음으로 넣기 위해
+            if(gallery.children.length > 1) {
                  gallery.insertBefore(item, gallery.children[1]);
             } else {
                 gallery.appendChild(item);
             }
         }
 
+        // 5. 모달 및 저장 기능
+        function openModal(url) {
+            modalImg.src = url;
+            currentPhotoUrl = url; // 저장할 사진 주소 기억
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // 모달 배경 클릭 시 닫기
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('close-msg')) {
+                closeModal();
+            }
+        });
+
+        // 사진 저장 함수
+        function downloadPhoto() {
+            if (!currentPhotoUrl) return;
+
+            const link = document.createElement('a');
+            link.href = currentPhotoUrl;
+            
+            // 파일명 생성 (photo_날짜_시간.jpg)
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}_${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
+            link.download = `polaroid_${timestamp}.jpg`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         shutterBtn.addEventListener('click', takePhoto);
         shutterBtn.addEventListener('touchstart', (e) => { e.preventDefault(); takePhoto(); });
         startCamera();
-
     </script>
 </body>
 </html>
