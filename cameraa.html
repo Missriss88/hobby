@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mobile Polaroid</title>
     <style>
-        /* 1. 기본 레이아웃 및 배경 */
+        /* 1. 기본 레이아웃 */
         body {
             display: flex;
-            flex-direction: row; /* 기본은 PC용 가로 배치 */
+            flex-direction: row;
             justify-content: center;
             align-items: center;
-            height: 100vh; /* 모바일 브라우저 주소창 대응을 위해 나중에 JS로 보정 가능 */
+            height: 100vh;
             background-color: #e0e0e0;
             background-image: radial-gradient(#cfcfcf 1px, transparent 1px);
             background-size: 20px 20px;
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
             margin: 0;
-            touch-action: manipulation; /* 터치 지연 방지 */
+            touch-action: manipulation;
         }
 
         /* 2. 카메라 영역 */
@@ -28,7 +28,6 @@
             transition: transform 0.3s;
         }
 
-        /* CSS 카메라 디자인 */
         .camera-body {
             width: 300px;
             height: 320px;
@@ -40,10 +39,9 @@
             justify-content: center;
             align-items: center;
             border: 2px solid #eee;
-            margin: 0 auto; /* 중앙 정렬 */
+            margin: 0 auto;
         }
 
-        /* 렌즈 및 화면 */
         .lens-ring {
             width: 190px;
             height: 190px;
@@ -72,7 +70,6 @@
             transform: scaleX(-1); /* 거울 모드 */
         }
 
-        /* 셔터 버튼 */
         .shutter-btn {
             position: absolute;
             bottom: 35px;
@@ -85,14 +82,11 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
             cursor: pointer;
             z-index: 20;
-            -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
+            -webkit-tap-highlight-color: transparent;
         }
         
-        .shutter-btn:active {
-            transform: scale(0.9);
-        }
+        .shutter-btn:active { transform: scale(0.9); }
 
-        /* 사진 나오는 슬롯 */
         .print-slot {
             position: absolute;
             top: -12px;
@@ -113,29 +107,31 @@
             margin-left: 50px;
         }
 
-        /* 폴라로이드 사진 스타일 */
+        /* 폴라로이드 스타일 */
         .polaroid {
             width: 160px;
             background: white;
             padding: 10px 10px 35px 10px;
             box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
-            position: absolute;
-            top: 20px;
-            left: 0; /* JS로 제어 */
-            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transform-origin: center;
+            position: absolute; 
             z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
+        /* 이미지가 깨지지 않도록 크기 강제 지정 */
         .polaroid img {
             width: 100%;
-            height: auto;
+            height: auto; /* 비율 유지 */
+            min-height: 100px; /* 최소 높이 확보 */
             background: #000;
             display: block;
             filter: grayscale(10%) contrast(1.1);
         }
 
         .polaroid .date {
+            width: 100%;
             font-size: 10px;
             color: #555;
             margin-top: 8px;
@@ -150,57 +146,41 @@
         .flash.active { animation: flashAnim 0.15s ease-out; }
         @keyframes flashAnim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
 
-        /* === 모바일 반응형 스타일 (화면 폭 768px 이하) === */
+        /* 모바일 반응형 */
         @media (max-width: 768px) {
             body {
-                flex-direction: column; /* 세로 배치 */
+                flex-direction: column;
                 justify-content: flex-start;
                 padding-top: 40px;
                 height: 100vh;
-                overflow: hidden;
             }
 
             .camera-wrapper {
-                transform: scale(0.85); /* 카메라 크기 85%로 축소 */
+                transform: scale(0.85);
                 margin-bottom: 10px;
                 margin-right: 0;
             }
 
-            /* 갤러리를 하단 가로 스크롤 영역으로 변경 */
             .gallery-container {
                 width: 100%;
-                height: 220px; /* 높이 고정 */
+                height: 220px;
                 margin-left: 0;
                 margin-top: 10px;
                 display: flex;
                 align-items: center;
-                overflow-x: auto; /* 가로 스크롤 */
+                overflow-x: auto;
                 overflow-y: hidden;
-                padding-left: 20px; /* 첫 사진 여백 */
-                box-sizing: border-box;
-                /* 스크롤바 숨기기 */
-                -ms-overflow-style: none; 
-                scrollbar-width: none;
+                padding-left: 20px;
             }
-            .gallery-container::-webkit-scrollbar { 
-                display: none; 
-            }
-
-            /* 모바일에서 사진은 스태틱 포지션으로 변경하여 스크롤 되게 함 */
+            
             .polaroid.developed {
                 position: relative !important;
                 top: auto !important;
                 left: auto !important;
                 flex-shrink: 0;
                 margin-right: 15px;
-                transform: rotate(0deg) !important; /* 모바일은 정렬해서 보여줌 */
+                transform: none !important;
             }
-        }
-
-        /* 애니메이션 정의 */
-        @keyframes ejectUp {
-            0% { top: 50px; opacity: 0; transform: scale(0.8); }
-            100% { top: -140px; opacity: 1; transform: scale(1); z-index: 20; }
         }
     </style>
 </head>
@@ -221,8 +201,7 @@
         </div>
     </div>
 
-    <div class="gallery-container" id="gallery">
-        </div>
+    <div class="gallery-container" id="gallery"></div>
 
     <script>
         const video = document.getElementById('video');
@@ -231,16 +210,15 @@
         const flash = document.getElementById('flash');
         const cameraWrapper = document.querySelector('.camera-wrapper');
 
-        // 1. 모바일/PC 감지
         const isMobile = window.innerWidth <= 768;
 
-        // 2. 카메라 시작 (모바일 전면 카메라 우선)
+        // 카메라 시작
         async function startCamera() {
             const constraints = {
                 audio: false,
                 video: {
-                    facingMode: 'user', // 전면 카메라 우선 (셀카 모드)
-                    width: { ideal: 1280 },
+                    facingMode: 'user',
+                    width: { ideal: 1280 }, // 해상도 지정
                     height: { ideal: 720 }
                 }
             };
@@ -248,95 +226,107 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
+                
+                // 비디오가 실제로 로드된 후 재생 시작
+                video.onloadedmetadata = () => {
+                    video.play();
+                };
             } catch (err) {
                 console.error("카메라 오류:", err);
-                alert("카메라 권한을 허용해주세요. (설정 > 브라우저 > 카메라 허용)");
+                alert("카메라 권한을 허용해주세요.");
             }
         }
 
-        // 3. 촬영 함수
+        // 촬영 함수
         function takePhoto() {
-            // 플래시 펑
+            // 비디오가 준비되지 않았으면 중단
+            if(video.readyState < 2) {
+                return;
+            }
+
             flash.classList.add('active');
             setTimeout(() => flash.classList.remove('active'), 150);
 
-            // 캔버스 그리기
+            // 캔버스 생성 (비디오의 실제 크기 사용)
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
 
-            // 좌우 반전 (거울 모드 유지)
+            // 거울 모드 유지
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+            // 이미지 데이터 추출
             const imgUrl = canvas.toDataURL('image/jpeg', 0.9);
             createPolaroid(imgUrl);
         }
 
-        // 4. 사진 생성 및 애니메이션 로직
+        // 폴라로이드 생성 (수정된 부분: 안전하게 이미지 넣기)
         function createPolaroid(url) {
             const polaroid = document.createElement('div');
             polaroid.className = 'polaroid';
             
+            // 1. 이미지 요소 생성
+            const img = document.createElement('img');
+            img.src = url; // 여기서 URL을 안전하게 주입
+            
+            // 2. 날짜 요소 생성
             const now = new Date();
-            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'date';
+            dateDiv.innerText = `#Memory ${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-            polaroid.innerHTML = `
-                <img src="${url}" alt="snapshot">
-                <div class="date">#Memory ${dateStr}</div>
-            `;
+            // 3. 합치기
+            polaroid.appendChild(img);
+            polaroid.appendChild(dateDiv);
 
-            // 카메라 래퍼 안에 임시로 생성 (출력 애니메이션용)
+            // 애니메이션 초기 위치 설정
             polaroid.style.position = 'absolute';
-            polaroid.style.top = '40px'; // 렌즈 뒤쪽
+            polaroid.style.top = '40px'; 
             polaroid.style.left = '50%';
             polaroid.style.transform = 'translateX(-50%) scale(0.8)';
             polaroid.style.opacity = '0';
             
             cameraWrapper.appendChild(polaroid);
 
-            // 출력 애니메이션 (위로 쑥 올라옴)
-            polaroid.animate([
+            // 출력 애니메이션
+            const animation = polaroid.animate([
                 { top: '40px', opacity: 0, transform: 'translateX(-50%) scale(0.8)' },
-                { top: '-150px', opacity: 1, transform: 'translateX(-50%) scale(1)' }
+                { top: '-180px', opacity: 1, transform: 'translateX(-50%) scale(1)' }
             ], {
                 duration: 1000,
                 easing: 'ease-out',
                 fill: 'forwards'
             });
 
-            // 애니메이션 종료 후 갤러리로 이동
-            setTimeout(() => {
-                movePhotoToGallery(polaroid);
-            }, 1200);
+            animation.onfinish = () => {
+                setTimeout(() => movePhotoToGallery(polaroid), 200);
+            };
         }
 
         function movePhotoToGallery(photoElement) {
-            // 기존 위치(카메라 위) 제거
-            photoElement.remove();
+            photoElement.remove(); // 기존 위치 제거
             
-            // 갤러리에 추가 (최신 사진이 맨 앞으로 오게 하려면 prepend)
-            // 모바일은 가로 스크롤이므로 prepend가 자연스러움
+            // 갤러리에 추가
             if (gallery.firstChild) {
                 gallery.insertBefore(photoElement, gallery.firstChild);
             } else {
                 gallery.appendChild(photoElement);
             }
 
-            // 갤러리 진입 스타일 설정
             photoElement.classList.add('developed');
             
-            // PC일 경우에만 랜덤 회전 및 절대 좌표 사용
             if (!isMobile) {
+                // PC: 랜덤 배치
                 const randomRotate = (Math.random() * 20) - 10;
                 const randomTop = Math.random() * 200;
                 const randomLeft = Math.random() * 100;
 
                 photoElement.style.position = 'absolute';
                 photoElement.style.transform = `rotate(${randomRotate}deg)`;
-                // 애니메이션 효과
+                
                 photoElement.animate([
                     { transform: `translate(-300px, 100px) scale(0.5)`, opacity: 0 },
                     { transform: `translate(${randomLeft}px, ${randomTop}px) rotate(${randomRotate}deg) scale(1)`, opacity: 1 }
@@ -346,7 +336,7 @@
                     fill: 'forwards'
                 });
             } else {
-                // 모바일: 자연스럽게 리스트에 추가되는 효과
+                // 모바일: 리스트 정렬
                 photoElement.style.position = 'relative';
                 photoElement.style.transform = 'none';
                 photoElement.style.top = '0';
@@ -363,7 +353,7 @@
 
         shutterBtn.addEventListener('click', takePhoto);
         shutterBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // 터치 시 더블클릭 확대 방지
+            e.preventDefault(); 
             takePhoto();
         });
 
