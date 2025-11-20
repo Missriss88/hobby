@@ -18,6 +18,7 @@
             overflow: hidden;
             font-family: 'Courier New', Courier, monospace;
             touch-action: manipulation;
+            user-select: none; /* 드래그 방지 */
         }
 
         /* 2. 메인 컨테이너 */
@@ -132,6 +133,8 @@
             align-items: center;
             cursor: pointer;
             transition: transform 0.2s;
+            /* 삭제 시 부드럽게 사라지게 */
+            transition: opacity 0.3s, transform 0.2s;
         }
         .photo-item:hover { transform: scale(1.05); z-index: 50; }
         
@@ -209,6 +212,7 @@
 
         .close-msg {
             margin-top: 15px; color: rgba(255,255,255,0.6); font-size: 12px;
+            cursor: pointer;
         }
 
         .flash {
@@ -245,8 +249,8 @@
         </div>
         
         <div class="btn-group">
-            <button class="action-btn save-btn" onclick="downloadPhoto()">💾 저장</button>
-            <button class="action-btn del-btn" onclick="deleteCurrentPhoto()">🗑 삭제</button>
+            <button class="action-btn save-btn" onclick="downloadPhoto(event)">💾 저장</button>
+            <button class="action-btn del-btn" onclick="deleteCurrentPhoto(event)">🗑 삭제</button>
         </div>
 
         <div class="close-msg" onclick="closeModal()">[ 닫기: 화면 빈 곳 터치 ]</div>
@@ -282,12 +286,13 @@
         let isProcessing = false;
         let currentPhotoData = null; 
 
-        // === 1. DB 설정 ===
+        // === 1. DB 설정 (버전 업그레이드 v2) ===
         let db;
         const DB_NAME = 'PolaroidDB';
         const STORE_NAME = 'photos';
-
-        const request = indexedDB.open(DB_NAME, 1);
+        
+        // 버전을 2로 올려서 스키마 갱신 강제
+        const request = indexedDB.open(DB_NAME, 2);
 
         request.onupgradeneeded = (event) => {
             db = event.target.result;
@@ -338,6 +343,7 @@
             
             const imgUrl = canvas.toDataURL('image/jpeg', 0.85); 
             const now = new Date();
+            // ID는 숫자로 명확하게 저장
             const photoData = {
                 id: now.getTime(), 
                 url: imgUrl,
@@ -363,10 +369,10 @@
         function loadSavedPhotos() {
             const transaction = db.transaction([STORE_NAME], 'readonly');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.getAll();
+            const req = store.getAll();
 
-            request.onsuccess = () => {
-                const photos = request.result;
+            req.onsuccess = () => {
+                const photos = req.result;
                 while(gallery.children.length > 1) {
                     gallery.removeChild(gallery.lastChild);
                 }
@@ -376,25 +382,39 @@
             };
         }
 
-        // 🔥 수정된 삭제 함수 (여기가 문제였음!)
-        function deleteCurrentPhoto() {
+        // === 🔥 문제 해결된 삭제 함수 ===
+        function deleteCurrentPhoto(e) {
+            // 1. 클릭 이벤트가 모달 배경으로 퍼지는 것 막기 (PC오류 원인 1)
+            if(e) e.stopPropagation(); 
+
             if (!currentPhotoData) return;
             
-            const targetId = currentPhotoData.id; // 1. ID를 미리 변수에 저장 (중요!)
+            const targetId = currentPhotoData.id; // ID 백업
 
             if(confirm("정말 이 사진을 삭제할까요?")) {
                 const transaction = db.transaction([STORE_NAME], 'readwrite');
                 const store = transaction.objectStore(STORE_NAME);
-                store.delete(targetId); // 2. 저장해둔 ID로 DB 삭제
+                
+                // 2. 삭제 요청
+                const delRequest = store.delete(targetId);
 
-                transaction.oncomplete = () => {
-                    // 3. UI에서 해당 사진 찾아서 제거
+                // 3. 삭제 요청이 '성공'했을 때만 UI 업데이트 실행
+                delRequest.onsuccess = () => {
+                    console.log("DB 삭제 성공:", targetId);
+                    
+                    // UI 요소 찾기
                     const item = document.getElementById(`photo-${targetId}`);
                     if(item) {
-                        item.remove();
+                        item.style.opacity = '0'; // 사라지는 효과
+                        setTimeout(() => item.remove(), 300);
+                    } else {
+                        console.log("화면에서 요소를 못 찾음: photo-" + targetId);
                     }
-                    // 4. 마지막으로 모달 닫기
                     closeModal();
+                };
+                
+                delRequest.onerror = () => {
+                    alert("삭제 중 오류가 발생했습니다.");
                 };
             }
         }
@@ -403,6 +423,7 @@
         function renderPhotoItem(data) {
             const item = document.createElement('div');
             item.className = 'photo-item';
+            // ID 생성 시 문자열과 숫자 결합 주의
             item.id = `photo-${data.id}`; 
             
             item.innerHTML = `<img src="${data.url}"><div class="date">${data.date}</div>`;
@@ -447,16 +468,19 @@
 
         function closeModal() {
             modal.style.display = 'none';
-            currentPhotoData = null; // 데이터 초기화
+            currentPhotoData = null;
         }
 
+        // 모달 배경 클릭 닫기
         modal.addEventListener('click', (e) => {
             if (e.target === modal || e.target.classList.contains('close-msg')) {
                 closeModal();
             }
         });
 
-        function downloadPhoto() {
+        function downloadPhoto(e) {
+            if(e) e.stopPropagation(); // 버튼 클릭 시 닫힘 방지
+            
             if (!currentPhotoData) return;
             const link = document.createElement('a');
             link.href = currentPhotoData.url;
