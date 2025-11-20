@@ -280,9 +280,9 @@
         const modalImg = document.getElementById('modalImg');
         
         let isProcessing = false;
-        let currentPhotoData = null; // 현재 선택된 사진 데이터 (삭제용)
+        let currentPhotoData = null; 
 
-        // === 1. 데이터베이스 설정 (IndexedDB) ===
+        // === 1. DB 설정 ===
         let db;
         const DB_NAME = 'PolaroidDB';
         const STORE_NAME = 'photos';
@@ -291,7 +291,6 @@
 
         request.onupgradeneeded = (event) => {
             db = event.target.result;
-            // id를 키로 사용하는 저장소 생성
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'id' });
             }
@@ -299,7 +298,7 @@
 
         request.onsuccess = (event) => {
             db = event.target.result;
-            loadSavedPhotos(); // DB 연결되면 저장된 사진 불러오기
+            loadSavedPhotos(); 
         };
 
         request.onerror = (event) => {
@@ -337,18 +336,15 @@
             ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0);
             
-            const imgUrl = canvas.toDataURL('image/jpeg', 0.85); // 용량 최적화
+            const imgUrl = canvas.toDataURL('image/jpeg', 0.85); 
             const now = new Date();
             const photoData = {
-                id: now.getTime(), // 고유 ID (시간)
+                id: now.getTime(), 
                 url: imgUrl,
                 date: `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
             };
 
-            // DB에 저장
             savePhotoToDB(photoData);
-
-            // 애니메이션 실행
             animatePhotoTransfer(photoData);
 
             setTimeout(() => {
@@ -357,7 +353,7 @@
             }, 1200);
         }
 
-        // === 4. DB 관련 함수 ===
+        // === 4. DB 함수 ===
         function savePhotoToDB(data) {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
@@ -371,50 +367,47 @@
 
             request.onsuccess = () => {
                 const photos = request.result;
-                // 최신순으로 정렬하지 않으면 옛날 사진이 먼저 나옴
-                // 여기선 단순하게 로드 후 역순 정렬
-                // (DB 키가 시간순이라 그냥 역순으로 뿌리면 됨)
-                /* 기존 갤러리 비우지 않고 추가하려면 로직 복잡해지니,
-                   초기 로딩은 한번 싹 비우고 다시 채우는게 안전 */
-                // 단, 애니메이션 중인 사진이 있을 수 있으니 제목만 남기고 비움
                 while(gallery.children.length > 1) {
                     gallery.removeChild(gallery.lastChild);
                 }
-                
-                // 최신순으로 보여주기 위해 뒤집기
                 photos.reverse().forEach(photo => {
                     renderPhotoItem(photo);
                 });
             };
         }
 
+        // 🔥 수정된 삭제 함수 (여기가 문제였음!)
         function deleteCurrentPhoto() {
             if (!currentPhotoData) return;
             
+            const targetId = currentPhotoData.id; // 1. ID를 미리 변수에 저장 (중요!)
+
             if(confirm("정말 이 사진을 삭제할까요?")) {
                 const transaction = db.transaction([STORE_NAME], 'readwrite');
                 const store = transaction.objectStore(STORE_NAME);
-                store.delete(currentPhotoData.id);
+                store.delete(targetId); // 2. 저장해둔 ID로 DB 삭제
 
                 transaction.oncomplete = () => {
+                    // 3. UI에서 해당 사진 찾아서 제거
+                    const item = document.getElementById(`photo-${targetId}`);
+                    if(item) {
+                        item.remove();
+                    }
+                    // 4. 마지막으로 모달 닫기
                     closeModal();
-                    // UI에서도 해당 사진 제거 (id로 찾기)
-                    const item = document.getElementById(`photo-${currentPhotoData.id}`);
-                    if(item) item.remove();
                 };
             }
         }
 
-        // === 5. UI 렌더링 및 애니메이션 ===
+        // === 5. UI 및 애니메이션 ===
         function renderPhotoItem(data) {
             const item = document.createElement('div');
             item.className = 'photo-item';
-            item.id = `photo-${data.id}`; // 삭제를 위해 ID 부여
+            item.id = `photo-${data.id}`; 
             
             item.innerHTML = `<img src="${data.url}"><div class="date">${data.date}</div>`;
             item.onclick = () => openModal(data);
 
-            // 갤러리 제목 다음(맨 앞)에 추가
             if(gallery.children.length > 1) {
                  gallery.insertBefore(item, gallery.children[1]);
             } else {
@@ -441,11 +434,11 @@
                 { top: targetY + 'px', left: targetX + 'px', transform: 'scale(0.7) rotate(5deg)', opacity: 1, offset: 1 }
             ], { duration: 1200, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => {
                 flyer.remove();
-                renderPhotoItem(data); // 애니메이션 끝나면 갤러리에 표시
+                renderPhotoItem(data);
             };
         }
 
-        // === 6. 모달 및 다운로드 ===
+        // === 6. 모달 ===
         function openModal(data) {
             currentPhotoData = data;
             modalImg.src = data.url;
@@ -454,7 +447,7 @@
 
         function closeModal() {
             modal.style.display = 'none';
-            currentPhotoData = null;
+            currentPhotoData = null; // 데이터 초기화
         }
 
         modal.addEventListener('click', (e) => {
