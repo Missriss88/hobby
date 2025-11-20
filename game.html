@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>한탕이의 대모험 - Optimized</title>
+    <title>한탕이의 대모험 - Balanced</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #101020; }
         
@@ -10,27 +10,48 @@
 
         /* UI 스타일 */
         #ui {
-            display: none; position: absolute; top: 20px; left: 20px;
-            color: white; font-family: 'Impact', sans-serif; font-size: 20px;
-            text-shadow: 2px 2px 2px #000; pointer-events: none; z-index: 10;
+            display: none;
+            position: absolute;
+            top: 20px; left: 20px;
+            color: white;
+            font-family: 'Impact', sans-serif;
+            font-size: 20px;
+            text-shadow: 2px 2px 2px #000;
+            pointer-events: none;
+            z-index: 10;
         }
+        
         #score-board { font-size: 30px; color: #ffff00; margin-bottom: 10px; }
+        
         #cooldowns {
-            margin-top: 10px; font-size: 16px; background: rgba(0, 0, 0, 0.5);
-            padding: 10px; border-radius: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
         }
         .ready { color: #00ff00; font-weight: bold; }
         .wait { color: #ff0000; }
         .buff-active { color: #ffff00; font-weight: bold; animation: blink 0.5s infinite; }
 
+        /* 키 가이드 */
         #key-guide {
-            position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
-            font-family: 'Black Han Sans', sans-serif; font-size: 40px; color: #fff;
-            text-shadow: 2px 2px 10px #000; background: rgba(0, 0, 0, 0.6);
-            padding: 10px 30px; border-radius: 20px; border: 3px solid #fff;
-            z-index: 20; display: none;
+            position: absolute;
+            bottom: 10%; left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 40px;
+            color: #fff;
+            text-shadow: 2px 2px 10px #000;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 30px;
+            border-radius: 20px;
+            border: 3px solid #fff;
+            z-index: 20;
+            display: none;
         }
 
+        /* 목표 점수 바 */
         #progress-bar-container {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             width: 400px; height: 25px; background: #333; border: 2px solid #fff; border-radius: 10px;
@@ -44,6 +65,7 @@
             font-family: 'Black Han Sans', sans-serif; color: white; text-shadow: 1px 1px 2px black; font-size: 16px;
         }
 
+        /* 타이틀 화면 */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.4); 
@@ -57,6 +79,7 @@
             text-shadow: 0px 0px 20px rgba(255, 165, 0, 0.8); margin-bottom: 20px; text-align: center;
         }
 
+        /* 효과 텍스트 */
         .floating-text {
             position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
             font-size: 60px; font-weight: bold; text-shadow: 3px 3px 0 #000;
@@ -65,6 +88,7 @@
         #item-text { color: #98FF98; font-size: 55px; text-shadow: 4px 4px 0 #3E2723; font-family: 'Black Han Sans', sans-serif; }
         #shout-text { color: #ffea00; font-size: 80px; text-shadow: 4px 4px 0 #ff0000; font-family: 'Black Han Sans', sans-serif; }
 
+        /* 적 사망 대사 */
         .death-msg {
             position: absolute; color: #aaa; font-family: 'Gowun Batang', serif;
             font-size: 20px; font-weight: bold; text-shadow: 1px 1px 2px #000; pointer-events: none;
@@ -72,6 +96,7 @@
         }
         @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
 
+        /* 엔딩 */
         #game-over, #game-clear {
             display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             text-align: center; z-index: 100;
@@ -99,7 +124,7 @@
     <div id="start-screen">
         <div id="game-title">한탕이의 대모험</div>
         <div style="font-size: 20px; margin-bottom: 40px; color: #fff; text-shadow: 1px 1px 5px black;">
-            화면을 클릭하여 시작! (최적화 패치 적용됨)
+            화면을 클릭하여 시작! (목표: 50,000점 / 황금 밸런스)
         </div>
     </div>
     
@@ -160,7 +185,7 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 2, 5);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: false }); // ★ 최적화: 안티앨리어싱 끔 (성능 향상)
+        const renderer = new THREE.WebGLRenderer({ antialias: false }); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true; 
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -170,7 +195,6 @@
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(5, 10, 7);
         dirLight.castShadow = true;
-        // ★ 최적화: 그림자 해상도 줄이기
         dirLight.shadow.mapSize.width = 1024;
         dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
@@ -182,7 +206,7 @@
         const playerGroup = new THREE.Group();
         scene.add(playerGroup);
 
-        // ★ 최적화: 지오메트리/머터리얼 미리 생성 (재활용)
+        // 지오메트리/머터리얼 미리 생성 (최적화)
         const enemyGeo = new THREE.BoxGeometry(1.5, 2, 1.5);
         const enemyMatRed = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
         const enemyMatDarkRed = new THREE.MeshStandardMaterial({ color: 0xAA0000 });
@@ -234,7 +258,6 @@
         function spawnFinishLine(xPos) {
             finishLineX = xPos;
             const houseGroup = new THREE.Group();
-            // 간단한 지오메트리는 그냥 생성
             const houseBody = new THREE.Mesh(new THREE.BoxGeometry(6, 6, 6), new THREE.MeshStandardMaterial({ color: 0x8B4513 }));
             houseBody.position.y = 3;
             const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(5, 4, 4), new THREE.MeshStandardMaterial({ color: 0x800000 }));
@@ -327,12 +350,10 @@
             setTimeout(() => { text.style.transform = 'translate(-50%, -50%) scale(1)'; }, 1500);
         }
 
-        // ★ 최적화: 지오메트리 재활용 적용
         function shootQRBeam() {
             const beam = new THREE.Mesh(beamGeo, beamMat);
             beam.position.copy(playerGroup.position);
             beam.position.y += 1; beam.position.x += 1;
-            // 투사체는 그림자 끔 (성능)
             beam.userData = { type: 'beam', velocity: 0.8, damage: 5 * damageMultiplier, hitLimit: 2, rangeLimit: 30 }; 
             scene.add(beam); projectiles.push(beam);
         }
@@ -346,11 +367,8 @@
         }
 
         function showDeathMessage() {
-            // ★ 최적화: DOM 요소 개수 제한
             const container = document.getElementById('death-msgs');
-            if (container.childElementCount > 20) {
-                container.removeChild(container.firstChild);
-            }
+            if (container.childElementCount > 20) container.removeChild(container.firstChild);
 
             const msgs = ["겨우 탈출했는데...", "자유의 몸이다...", "제발 살려줘...", "햇빛을 보고싶었어...", "다시 지하실로?!"];
             const msg = msgs[Math.floor(Math.random() * msgs.length)];
@@ -363,7 +381,7 @@
             setTimeout(() => { div.remove(); }, 2000);
         }
 
-        // 민초 아이템 재활용 (지오메트리)
+        // 민초 아이템
         const mintGeo = new THREE.SphereGeometry(0.5, 16, 16);
         const mintMat = new THREE.MeshStandardMaterial({ color: 0x98FF98, roughness: 0.8 });
         const chipGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
@@ -387,19 +405,18 @@
             if (!gameStarted || isGameOver || isGameClear) return;
             if (houseSpawned && playerGroup.position.x > finishLineX - 60) return;
 
-            // 난이도 로직
+            // 난이도 로직 (물량, 맷집)
             if (score >= 30000) { enemyHpMultiplier = 3; spawnRateMultiplier = 4; } 
             else if (score >= 20000) { enemyHpMultiplier = 2; spawnRateMultiplier = 2; } 
             else if (score >= 10000) { enemyHpMultiplier = 2; spawnRateMultiplier = 1; } 
             else { enemyHpMultiplier = 1; spawnRateMultiplier = 1.5; } 
 
             if (Math.random() < 0.03 * spawnRateMultiplier) { 
-                // ★ 최적화: 재질 재활용
                 let mat = enemyMatRed;
                 if (enemyHpMultiplier === 2) mat = enemyMatDarkRed;
                 if (enemyHpMultiplier === 3) mat = enemyMatBlackRed;
                 
-                const enemy = new THREE.Mesh(enemyGeo, mat); // 지오메트리 재활용
+                const enemy = new THREE.Mesh(enemyGeo, mat); 
                 enemy.position.set(playerGroup.position.x + 25 + Math.random() * 5, 1, 0);
                 enemy.userData = { hp: 5 * enemyHpMultiplier }; 
                 enemy.castShadow = true;
@@ -504,23 +521,23 @@
                     if (p.position.distanceTo(enemy.position) < 1.5) {
                         enemy.userData.hp -= p.userData.damage;
                         if (enemy.userData.hp <= 0) {
-                            // ★ 유언 확률 로직 (Ver 2.1)
                             let msgChance = 0;
                             if (score >= 40000) msgChance = 0.25;
                             else if (score >= 30000) msgChance = 0.1;
                             else if (score >= 20000) msgChance = 0.05;
                             else if (score >= 10000) msgChance = 0.01;
-                            else msgChance = 0.005; // 0.5%
+                            else msgChance = 0.005; 
 
                             if (Math.random() < msgChance) showDeathMessage();
                             
                             if (Math.random() < 0.2) spawnItem(enemy.position.x, enemy.position.y, enemy.position.z);
                             scene.remove(enemy); enemies.splice(j, 1);
                             
-                            let points = 10; 
-                            if (score >= 30000) points = 40;      
-                            else if (score >= 20000) points = 30; 
-                            else if (score >= 10000) points = 20; 
+                            // ★ 점수 시스템 (밸런스 패치 Ver 2.3)
+                            let points = 100; // 기본 100점
+                            if (score >= 30000) points = 250;      // 3만점 이상: 250점
+                            else if (score >= 20000) points = 200; // 2만점 이상: 200점
+                            else if (score >= 10000) points = 150; // 1만점 이상: 150점
                             
                             score += points;
                             document.getElementById('score').innerText = score;
