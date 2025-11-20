@@ -34,7 +34,6 @@
             z-index: 20;
         }
 
-        /* 카메라 디자인 */
         .camera-body {
             width: 300px;
             height: 320px;
@@ -72,6 +71,7 @@
             width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);
         }
 
+        /* 셔터 버튼 스타일 */
         .shutter-btn {
             position: absolute;
             bottom: 35px; left: 25px;
@@ -81,8 +81,14 @@
             border: 4px solid #fff;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
             cursor: pointer;
+            transition: transform 0.1s;
         }
         .shutter-btn:active { transform: scale(0.9); }
+        /* 비활성화(찍는 중) 상태일 때 */
+        .shutter-btn.disabled {
+            background-color: #ccc;
+            pointer-events: none; /* 클릭 불가 */
+        }
 
         .print-slot {
             position: absolute;
@@ -161,7 +167,7 @@
             left: 0; top: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(5px);
-            flex-direction: column; /* 세로 배치 */
+            flex-direction: column;
             justify-content: center; align-items: center;
         }
 
@@ -170,7 +176,7 @@
             max-width: 90%;
             max-height: 70vh;
             background: white;
-            padding: 15px 15px 50px 15px; /* 폴라로이드 여백 */
+            padding: 15px 15px 50px 15px;
             border-radius: 4px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             text-align: center;
@@ -182,7 +188,6 @@
             display: block;
         }
 
-        /* 저장 버튼 스타일 */
         .save-btn {
             margin-top: 20px;
             padding: 12px 30px;
@@ -194,17 +199,12 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(255, 127, 80, 0.4);
-            transition: transform 0.1s, background-color 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; gap: 8px;
         }
         .save-btn:active { transform: scale(0.95); background-color: #ff6347; }
 
         .close-msg {
-            margin-top: 15px;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
+            margin-top: 15px; color: rgba(255,255,255,0.6); font-size: 12px;
         }
 
         .flash {
@@ -216,13 +216,8 @@
 
         @media (max-width: 768px) {
             .main-container {
-                flex-direction: column;
-                align-items: center;
-                gap: 20px;
-                width: 100%;
-                height: 100vh;
-                padding-top: 20px;
-                box-sizing: border-box;
+                flex-direction: column; align-items: center; gap: 20px;
+                width: 100%; height: 100vh; padding-top: 20px; box-sizing: border-box;
             }
             .camera-body { transform: scale(0.85); margin-bottom: -20px; }
             .gallery-box {
@@ -244,11 +239,7 @@
             <img id="modalImg" src="">
             <div style="margin-top:10px; font-size:12px; color:#666; font-family:'Courier New'">#Memory</div>
         </div>
-        
-        <button class="save-btn" id="saveBtn" onclick="downloadPhoto()">
-            💾 사진 저장하기
-        </button>
-        
+        <button class="save-btn" onclick="downloadPhoto()">💾 사진 저장하기</button>
         <div class="close-msg" onclick="closeModal()">[ 닫기: 화면의 빈 곳 클릭 ]</div>
     </div>
 
@@ -279,9 +270,9 @@
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modalImg');
         
-        let currentPhotoUrl = ""; // 현재 보고 있는 사진 URL 저장
+        let currentPhotoUrl = "";
+        let isProcessing = false; // 중복 촬영 방지용 깃발
 
-        // 1. 카메라 시작
         async function startCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -294,10 +285,16 @@
             }
         }
 
-        // 2. 촬영
         function takePhoto() {
-            if(video.readyState < 2) return;
+            // 1. 이미 찍고 있는 중이면 무시 (중복 방지 핵심)
+            if (isProcessing) return;
+            if (video.readyState < 2) return;
 
+            // 2. "찍는 중" 상태로 변경 및 버튼 비활성화
+            isProcessing = true;
+            shutterBtn.classList.add('disabled');
+
+            // 3. 플래시 및 촬영
             flash.classList.add('active');
             setTimeout(() => flash.classList.remove('active'), 150);
 
@@ -311,9 +308,14 @@
             
             const imgUrl = canvas.toDataURL('image/jpeg', 0.9);
             animatePhotoTransfer(imgUrl);
+
+            // 4. 1.2초 뒤에 다시 찍을 수 있게 풀어줌 (애니메이션 시간과 비슷하게)
+            setTimeout(() => {
+                isProcessing = false;
+                shutterBtn.classList.remove('disabled');
+            }, 1200);
         }
 
-        // 3. 이동 애니메이션
         function animatePhotoTransfer(url) {
             const flyer = document.createElement('div');
             flyer.className = 'flying-photo';
@@ -337,7 +339,6 @@
             };
         }
 
-        // 4. 갤러리 추가
         function addPhotoToGallery(url) {
             const item = document.createElement('div');
             item.className = 'photo-item';
@@ -355,10 +356,9 @@
             }
         }
 
-        // 5. 모달 및 저장 기능
         function openModal(url) {
             modalImg.src = url;
-            currentPhotoUrl = url; // 저장할 사진 주소 기억
+            currentPhotoUrl = url;
             modal.style.display = 'flex';
         }
 
@@ -366,32 +366,31 @@
             modal.style.display = 'none';
         }
 
-        // 모달 배경 클릭 시 닫기
         modal.addEventListener('click', (e) => {
             if (e.target === modal || e.target.classList.contains('close-msg')) {
                 closeModal();
             }
         });
 
-        // 사진 저장 함수
         function downloadPhoto() {
             if (!currentPhotoUrl) return;
-
             const link = document.createElement('a');
             link.href = currentPhotoUrl;
-            
-            // 파일명 생성 (photo_날짜_시간.jpg)
             const now = new Date();
             const timestamp = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}_${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
             link.download = `polaroid_${timestamp}.jpg`;
-            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
+        // 이벤트 리스너 정리: 터치와 클릭이 중복되어도 함수 내부에서 막아줌
         shutterBtn.addEventListener('click', takePhoto);
-        shutterBtn.addEventListener('touchstart', (e) => { e.preventDefault(); takePhoto(); });
+        shutterBtn.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            takePhoto(); 
+        });
+
         startCamera();
     </script>
 </body>
