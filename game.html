@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>한탕이의 대모험 - The Truth</title>
+    <title>한탕이의 대모험 - Balanced</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #101020; }
         
@@ -124,7 +124,7 @@
     <div id="start-screen">
         <div id="game-title">한탕이의 대모험</div>
         <div style="font-size: 20px; margin-bottom: 40px; color: #fff; text-shadow: 1px 1px 5px black;">
-            화면을 클릭하여 시작! (목표: 50,000점)
+            화면을 클릭하여 시작! (목표: 50,000점 / 황금 밸런스)
         </div>
     </div>
     
@@ -185,15 +185,18 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 2, 5);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: false }); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true; 
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
         // 조명
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(5, 10, 7);
         dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
         scene.add(new THREE.AmbientLight(0x606060));
 
@@ -202,6 +205,18 @@
         let mixer; 
         const playerGroup = new THREE.Group();
         scene.add(playerGroup);
+
+        // 지오메트리/머터리얼 미리 생성 (최적화)
+        const enemyGeo = new THREE.BoxGeometry(1.5, 2, 1.5);
+        const enemyMatRed = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
+        const enemyMatDarkRed = new THREE.MeshStandardMaterial({ color: 0xAA0000 });
+        const enemyMatBlackRed = new THREE.MeshStandardMaterial({ color: 0x550000 });
+
+        const beamGeo = new THREE.BoxGeometry(1.5, 0.3, 0.3);
+        const beamMat = new THREE.MeshBasicMaterial({ color: 0x00FF00 });
+        
+        const paperGeo = new THREE.BoxGeometry(1, 1, 1);
+        const paperMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
 
         const placeholderGeo = new THREE.BoxGeometry(1, 2, 1);
         const placeholderMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
@@ -336,9 +351,7 @@
         }
 
         function shootQRBeam() {
-            const geom = new THREE.BoxGeometry(1.5, 0.3, 0.3);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00FF00 });
-            const beam = new THREE.Mesh(geom, mat);
+            const beam = new THREE.Mesh(beamGeo, beamMat);
             beam.position.copy(playerGroup.position);
             beam.position.y += 1; beam.position.x += 1;
             beam.userData = { type: 'beam', velocity: 0.8, damage: 5 * damageMultiplier, hitLimit: 2, rangeLimit: 30 }; 
@@ -346,9 +359,7 @@
         }
 
         function throwContract() {
-            const geom = new THREE.BoxGeometry(1, 1, 1);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
-            const paper = new THREE.Mesh(geom, mat);
+            const paper = new THREE.Mesh(paperGeo, paperMat);
             paper.position.copy(playerGroup.position);
             paper.position.y += 1; paper.position.x += 1;
             paper.userData = { type: 'contract', velocity: 0.7, damage: 100 * damageMultiplier, hitLimit: 999, rangeLimit: 60 }; 
@@ -356,6 +367,9 @@
         }
 
         function showDeathMessage() {
+            const container = document.getElementById('death-msgs');
+            if (container.childElementCount > 20) container.removeChild(container.firstChild);
+
             const msgs = ["겨우 탈출했는데...", "자유의 몸이다...", "제발 살려줘...", "햇빛을 보고싶었어...", "다시 지하실로?!"];
             const msg = msgs[Math.floor(Math.random() * msgs.length)];
             const div = document.createElement('div');
@@ -363,18 +377,21 @@
             div.innerText = msg;
             div.style.left = (20 + Math.random() * 60) + '%';
             div.style.top = (30 + Math.random() * 40) + '%';
-            document.getElementById('death-msgs').appendChild(div);
+            container.appendChild(div);
             setTimeout(() => { div.remove(); }, 2000);
         }
 
+        // 민초 아이템
+        const mintGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const mintMat = new THREE.MeshStandardMaterial({ color: 0x98FF98, roughness: 0.8 });
+        const chipGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+        const chipMat = new THREE.MeshStandardMaterial({ color: 0x3E2723 });
+
         function spawnItem(x, y, z) {
             const itemGroup = new THREE.Group();
-            const mintGeo = new THREE.SphereGeometry(0.5, 16, 16);
-            const mintMat = new THREE.MeshStandardMaterial({ color: 0x98FF98, roughness: 0.8 });
             const mintBall = new THREE.Mesh(mintGeo, mintMat);
             itemGroup.add(mintBall);
-            const chipGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-            const chipMat = new THREE.MeshStandardMaterial({ color: 0x3E2723 });
+            
             for(let k=0; k<6; k++) { 
                 const chip = new THREE.Mesh(chipGeo, chipMat);
                 chip.position.set(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(0.45);
@@ -388,19 +405,18 @@
             if (!gameStarted || isGameOver || isGameClear) return;
             if (houseSpawned && playerGroup.position.x > finishLineX - 60) return;
 
-            // ★ 난이도 조정 (물량 4배)
+            // 난이도 로직 (물량, 맷집)
             if (score >= 30000) { enemyHpMultiplier = 3; spawnRateMultiplier = 4; } 
             else if (score >= 20000) { enemyHpMultiplier = 2; spawnRateMultiplier = 2; } 
             else if (score >= 10000) { enemyHpMultiplier = 2; spawnRateMultiplier = 1; } 
-            else { enemyHpMultiplier = 1; spawnRateMultiplier = 1; }
+            else { enemyHpMultiplier = 1; spawnRateMultiplier = 1.5; } 
 
             if (Math.random() < 0.03 * spawnRateMultiplier) { 
-                const geom = new THREE.BoxGeometry(1.5, 2, 1.5);
-                let color = 0xFF0000;
-                if (enemyHpMultiplier === 2) color = 0xAA0000; 
-                if (enemyHpMultiplier === 3) color = 0x550000; 
-                const mat = new THREE.MeshStandardMaterial({ color: color });
-                const enemy = new THREE.Mesh(geom, mat);
+                let mat = enemyMatRed;
+                if (enemyHpMultiplier === 2) mat = enemyMatDarkRed;
+                if (enemyHpMultiplier === 3) mat = enemyMatBlackRed;
+                
+                const enemy = new THREE.Mesh(enemyGeo, mat); 
                 enemy.position.set(playerGroup.position.x + 25 + Math.random() * 5, 1, 0);
                 enemy.userData = { hp: 5 * enemyHpMultiplier }; 
                 enemy.castShadow = true;
@@ -493,11 +509,7 @@
                     document.getElementById('item-text').innerText = phrases[Math.floor(Math.random()*phrases.length)];
                     showTextEffect('item-text');
                     
-                    // ★ 민초 아이템: 모든 쿨타임 초기화
-                    lastQrTime = 0; 
-                    lastContractTime = 0; 
-                    lastBuffTime = 0; 
-                    
+                    lastQrTime = 0; lastContractTime = 0; lastBuffTime = 0; 
                     scene.remove(item); items.splice(i, 1); updateUI();
                 } else if (item.position.x < playerGroup.position.x - 10) { scene.remove(item); items.splice(i, 1); }
             }
@@ -509,24 +521,23 @@
                     if (p.position.distanceTo(enemy.position) < 1.5) {
                         enemy.userData.hp -= p.userData.damage;
                         if (enemy.userData.hp <= 0) {
-                            // ★ 사망 대사 확률 로직
                             let msgChance = 0;
                             if (score >= 40000) msgChance = 0.25;
                             else if (score >= 30000) msgChance = 0.1;
                             else if (score >= 20000) msgChance = 0.05;
                             else if (score >= 10000) msgChance = 0.01;
+                            else msgChance = 0.005; 
 
-                            if (Math.random() < msgChance) {
-                                showDeathMessage();
-                            }
+                            if (Math.random() < msgChance) showDeathMessage();
                             
                             if (Math.random() < 0.2) spawnItem(enemy.position.x, enemy.position.y, enemy.position.z);
                             scene.remove(enemy); enemies.splice(j, 1);
                             
-                            // ★ 점수 시스템
-                            let points = 100; 
-                            if (score >= 30000) points = 500; 
-                            else if (score >= 10000) points = 200; 
+                            // ★ 점수 시스템 (밸런스 패치 Ver 2.3)
+                            let points = 100; // 기본 100점
+                            if (score >= 30000) points = 250;      // 3만점 이상: 250점
+                            else if (score >= 20000) points = 200; // 2만점 이상: 200점
+                            else if (score >= 10000) points = 150; // 1만점 이상: 150점
                             
                             score += points;
                             document.getElementById('score').innerText = score;
