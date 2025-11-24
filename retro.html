@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Pro Beeper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 1. 기본 설정 */
+        * { box-sizing: border-box; user-select: none; }
+        body {
+            margin: 0; padding: 0; height: 100vh;
+            background-color: #f0f2f5;
+            background-image: 
+                linear-gradient(#e1e4e8 1px, transparent 1px),
+                linear-gradient(90deg, #e1e4e8 1px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'Courier Prime', monospace;
+            overflow: hidden;
+        }
+
+        /* 2. 어두운 막 (Overlay) - 계층 구조 수정 */
+        /* z-index: 900 -> 삐삐(500)보다는 높고, 확대된 종이(2000)보다는 낮아야 함 */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* 아주 진한 검정 */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 900; 
+            backdrop-filter: blur(5px); /* 뒷배경 흐리게 */
+        }
+        #overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 3. 종이 영역 컨테이너 */
+        /* 중요: 여기에 z-index를 주면 안됩니다. 자식(종이)이 탈출할 수 있어야 합니다. */
+        #paper-area {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; 
+            /* z-index 제거함 */
+        }
+
+        /* 4. 삐삐 (Beeper) */
+        .beeper-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 500; /* 오버레이(900)보다 낮음 -> 오버레이 켜지면 어두워짐 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: filter 0.3s ease, opacity 0.3s ease;
+        }
+
+        /* 오버레이가 켜졌을 때 삐삐를 더 흐리게 만듦 */
+        body.modal-open .beeper-container {
+            filter: blur(4px) grayscale(100%);
+            opacity: 0.3;
+        }
+
+        .beeper {
+            width: 360px; height: 240px;
+            background-color: #82dc32;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3), inset 0 -5px 10px rgba(0,0,0,0.1), inset 0 5px 10px rgba(255,255,255,0.4);
+            padding: 20px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        /* 삐삐 내부 요소들 */
+        .beeper-top { display: flex; justify-content: space-between; font-size: 10px; color: #4a7c1b; font-weight: bold; margin-bottom: 5px; }
+        .screen-container {
+            background-color: #111; border-radius: 15px; padding: 15px; height: 100px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8); border: 4px solid #6bc428;
+            display: flex; flex-direction: column;
+        }
+        .screen-header { color: #444; font-size: 10px; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        textarea.screen-input {
+            width: 100%; height: 100%; background: transparent; border: none; outline: none;
+            color: #5bf848; font-family: 'VT323', monospace; font-size: 24px; resize: none; line-height: 1.2;
+        }
+        textarea.screen-input::placeholder { color: #2a5c22; }
+        .controls { display: flex; gap: 15px; margin-top: 10px; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
+        .small-btn { background: #333; border-radius: 50%; width: 35px; height: 35px; box-shadow: 0 3px 0 #000; cursor: pointer; }
+        .print-btn {
+            flex: 2; background-color: #ff4d2e; color: white; border: none; border-radius: 15px;
+            font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 18px; cursor: pointer;
+            box-shadow: 0 6px 0 #c42a10; transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .print-btn:active { transform: translateY(6px); box-shadow: 0 0 0 #c42a10; }
+
+        /* 5. 종이 (메시지) 스타일 */
+        .paper {
+            position: absolute;
+            width: 260px;
+            min-height: 100px;
+            background: #fff;
+            padding: 20px;
+            
+            /* 기본 그림자 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            
+            font-family: 'Courier Prime', monospace;
+            font-size: 14px;
+            color: #222; /* 글자색 진한 검정 */
+            cursor: pointer;
+            pointer-events: auto;
+            
+            /* 부드러운 움직임 */
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0s;
+            
+            /* 종이 질감 */
+            background-image: radial-gradient(#ddd 1px, transparent 1px);
+            background-size: 8px 8px;
+            
+            /* 초기 생성 위치 및 상태 */
+            left: 50%; bottom: 100px;
+            transform: translate(-50%, 0) scale(0.5);
+            opacity: 0;
+            z-index: 100; /* 기본 종이는 오버레이(900)보다 아래 */
+        }
+
+        .paper:hover {
+            transform: scale(1.1) !important; /* 확대 안 된 상태에서 호버 시 */
+            z-index: 200 !important;
+        }
+
+        /* 6. 확대된 종이 (스포트라이트 모드) */
+        /* 오버레이(900)보다 무조건 높아야 함 -> z-index: 2000 */
+        .paper.expanded {
+            position: fixed !important; /* 화면 기준 배치 */
+            top: 50% !important;
+            left: 50% !important;
+            
+            /* 정중앙 배치 + 2배 확대 + 회전 없음 */
+            transform: translate(-50%, -50%) scale(2) rotate(0deg) !important;
+            
+            z-index: 2000 !important; /* 최상위 레벨로 승격 */
+            
+            /* 스포트라이트 효과: 하얀 빛 번짐 + 진한 그림자 */
+            box-shadow: 
+                0 0 0 10px rgba(255,255,255,0.05), /* 미세한 빛 테두리 */
+                0 30px 60px rgba(0,0,0,0.8),       /* 깊은 그림자 */
+                0 0 100px rgba(255,255,255,0.3) !important; /* 전체적인 스포트라이트 */
+            
+            cursor: zoom-out;
+            border: 1px solid #eee;
+        }
+
+        .paper-header { border-bottom: 2px dashed #aaa; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; font-size: 10px; color: #666; font-weight: bold; }
+        .paper-content { font-size: 16px; line-height: 1.5; word-break: break-all; font-weight: bold; color: #111; }
+        .paper-footer { margin-top: 15px; font-size: 8px; color: #999; text-align: right; text-transform: uppercase; }
+
+    </style>
+</head>
+<body>
+
+    <div id="overlay" onclick="closeAllPapers()"></div>
+
+    <div id="paper-area"></div>
+
+    <div class="beeper-container">
+        <div style="color: #aaa; margin-bottom: 10px; font-size: 0.8rem; letter-spacing: 2px;">Gemini PRO BEEPER</div>
+        
+        <div class="beeper">
+            <div class="beeper-top">
+                <span>🟢 READY</span>
+                <span>📶 5G</span>
+            </div>
+
+            <div class="screen-container">
+                <div class="screen-header">
+                    <span>MSG_INPUT</span>
+                    <span id="clock">00:00</span>
+                </div>
+                <textarea id="inputMessage" class="screen-input" placeholder="TYPE HERE..." maxlength="80"></textarea>
+            </div>
+
+            <div class="controls">
+                <div class="btn-group">
+                    <div class="small-btn"></div>
+                    <div class="small-btn"></div>
+                </div>
+                <button class="print-btn" onclick="printMessage()">
+                    PRINT 🖨️
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = 
+                `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        let paperCount = 0;
+
+        function printMessage() {
+            const input = document.getElementById('inputMessage');
+            const text = input.value.trim();
+            const area = document.getElementById('paper-area');
+
+            if (!text) return;
+
+            const paper = document.createElement('div');
+            paper.className = 'paper';
+            paperCount++;
+            
+            const msgId = Math.floor(Math.random() * 9999);
+            const time = new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+            
+            paper.innerHTML = `
+                <div class="paper-header">
+                    <span>NO. ${String(msgId).padStart(4,'0')}</span>
+                    <span>${time}</span>
+                </div>
+                <div class="paper-content">${text}</div>
+                <div class="paper-footer">Message Received</div>
+            `;
+
+            // 클릭 이벤트
+            paper.onclick = function(e) {
+                e.stopPropagation(); // 배경 클릭 막기
+                toggleZoom(this);
+            };
+
+            area.appendChild(paper);
+
+            // 1. 출력 애니메이션 (삐삐에서 솟아오름)
+            setTimeout(() => {
+                paper.style.opacity = '1';
+                paper.style.bottom = '250px'; 
+                paper.style.transform = 'translate(-50%, 0) scale(1)';
+            }, 50);
+
+            // 2. 날아가는 애니메이션 (화면 상단으로 배치)
+            setTimeout(() => {
+                const randomTop = 10 + Math.random() * 40; // 화면 상단 10~50%
+                const randomLeft = 5 + Math.random() * 90; // 좌우 랜덤
+                const randomRot = (Math.random() - 0.5) * 40; // 회전
+
+                // 나중에 복구하기 위해 원래 위치 저장
+                paper.dataset.originalTransform = `translate(-50%, -50%) rotate(${randomRot}deg) scale(1)`;
+                paper.dataset.originalLeft = randomLeft + '%';
+                paper.dataset.originalTop = randomTop + '%';
+
+                // 위치 이동
+                paper.style.bottom = 'auto';
+                paper.style.left = randomLeft + '%';
+                paper.style.top = randomTop + '%';
+                paper.style.transform = `translate(-50%, -50%) rotate(${randomRot}deg) scale(1)`;
+                
+                // z-index는 기본적으로 낮게 (오버레이 밑)
+                paper.style.zIndex = 100 + paperCount; 
+            }, 800);
+
+            input.value = '';
+            input.focus();
+        }
+
+        function toggleZoom(paperElement) {
+            const overlay = document.getElementById('overlay');
+            const body = document.body;
+            
+            // 이미 확대된 상태라면 닫기
+            if (paperElement.classList.contains('expanded')) {
+                closeAllPapers();
+                return;
+            }
+
+            // 다른 종이가 열려있다면 닫기
+            closeAllPapers();
+
+            // 확대 시작
+            paperElement.classList.add('expanded');
+            overlay.classList.add('active'); // 배경 어둡게
+            body.classList.add('modal-open'); // 삐삐 흐리게 처리용 클래스 추가
+        }
+
+        function closeAllPapers() {
+            const expandedPaper = document.querySelector('.paper.expanded');
+            const overlay = document.getElementById('overlay');
+            const body = document.body;
+            
+            if (expandedPaper) {
+                expandedPaper.classList.remove('expanded');
+                // 클래스를 제거하면 CSS의 transition에 의해 원래 style(회전된 상태)로 돌아갑니다.
+            }
+            overlay.classList.remove('active');
+            body.classList.remove('modal-open');
+        }
+
+        // 엔터키 입력 처리
+        document.getElementById('inputMessage').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                printMessage();
+            }
+        });
+    </script>
+</body>
+</html>
