@@ -51,10 +51,11 @@
             ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
             Box: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
             Wifi: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
-            Activity: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Activity: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+            Monitor: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
         };
 
-        const { Terminal, Play, RotateCcw, CheckCircle, XCircle, Code2, Cpu, Trophy, RefreshCw, User, ChevronRight, Box, Wifi, Activity } = Icons;
+        const { Terminal, Play, RotateCcw, CheckCircle, XCircle, Code2, Cpu, Trophy, RefreshCw, User, ChevronRight, Box, Wifi, Activity, Monitor } = Icons;
 
         // --- SCENARIO DATA (3 Per Language) ---
         const SCENARIOS = {
@@ -417,11 +418,11 @@
                             <div className="flex flex-col h-full gap-4 p-4">
                                 <div className="bg-gray-800 rounded-xl p-4 flex-1 flex items-end justify-around relative cursor-pointer group border border-gray-700 hover:border-gray-500 transition-all" onClick={refreshChart}>
                                     {chartData.map((h, i) => (
-                                        <div key={i} style={{ height: `${h}%` }} className={`w-8 md:w-12 transition-all duration-500 rounded-t-md ${scenarioType === 'finance_chart' ? (h>50 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]') : 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'}`}></div>
+                                        <div key={i} style={{ height: `${h}%` }} className={`w-8 md:w-16 transition-all duration-500 rounded-t-md ${scenarioType === 'finance_chart' ? (h>50 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]') : 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'}`}></div>
                                     ))}
-                                    {isInteractive && <div className="absolute top-2 right-2 opacity-50 group-hover:opacity-100 transition-opacity"><RefreshCw size={20}/></div>}
+                                    {isInteractive && <div className="absolute top-2 right-2 opacity-50 group-hover:opacity-100 transition-opacity"><RefreshCw size={24}/></div>}
                                 </div>
-                                <div className="h-1/3 text-xs md:text-sm text-green-400 font-mono bg-black p-3 rounded-xl overflow-hidden border border-gray-800 shadow-inner">
+                                <div className="h-1/3 text-sm md:text-base text-green-400 font-mono bg-black p-4 rounded-xl overflow-hidden border border-gray-800 shadow-inner">
                                     <div className="border-b border-gray-800 pb-1 mb-2 text-gray-500 font-bold">TERMINAL OUTPUT</div>
                                     {logs.map((l, i) => <div key={i}>{l}</div>)}
                                     <div ref={logEndRef} />
@@ -430,7 +431,7 @@
                         );
                     case 'scraper_log':
                         return (
-                            <div className="h-full bg-black p-4 font-mono text-sm md:text-base text-gray-300 overflow-y-auto">
+                            <div className="h-full bg-black p-6 font-mono text-base md:text-lg text-gray-300 overflow-y-auto">
                                 <div className="text-green-500 mb-2 font-bold">$ python scraper.py</div>
                                 {logs.map((l, i) => (
                                     <div key={i} className="mb-1 border-l-2 border-gray-800 pl-2">
@@ -445,22 +446,22 @@
                     case 'rpg_grid':
                         return (
                             <div className="relative h-full bg-[#1a1a1a] p-4 font-mono flex flex-col">
-                                <div className="flex-1 grid grid-cols-8 grid-rows-6 gap-1 mb-4 bg-black p-2 rounded-xl border border-gray-800 shadow-inner">
+                                <div className="flex-1 grid grid-cols-8 grid-rows-6 gap-2 mb-4 bg-black p-4 rounded-xl border border-gray-800 shadow-inner">
                                     {Array.from({ length: 48 }).map((_, i) => (
                                         <div key={i} className={`rounded transition-all duration-200 border border-white/5 ${i===heroPos.y*8+heroPos.x ? 'bg-blue-500 shadow-[0_0_15px_blue] scale-90' : 'bg-gray-900'}`}></div>
                                     ))}
                                 </div>
-                                <div className="h-24 text-xs md:text-sm text-gray-400 border-t border-gray-800 pt-2 font-mono">
+                                <div className="h-24 text-sm md:text-base text-gray-400 border-t border-gray-800 pt-2 font-mono">
                                     <div className="text-gray-600 mb-1">GAME LOG:</div>
                                     {logs.map((l, i) => <div key={i}>{l}</div>)}
                                     <div ref={logEndRef} />
                                 </div>
                                 {isInteractive && (
-                                    <div className="absolute bottom-6 right-6 grid grid-cols-3 gap-2 opacity-80">
-                                        <div/> <button className="bg-gray-700 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('U')}>▲</button> <div/>
-                                        <button className="bg-gray-700 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('L')}>◀</button>
-                                        <button className="bg-gray-700 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('D')}>▼</button>
-                                        <button className="bg-gray-700 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('R')}>▶</button>
+                                    <div className="absolute bottom-6 right-6 grid grid-cols-3 gap-2 opacity-80 scale-125 origin-bottom-right p-4">
+                                        <div/> <button className="bg-gray-700 w-12 h-12 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('U')}>▲</button> <div/>
+                                        <button className="bg-gray-700 w-12 h-12 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('L')}>◀</button>
+                                        <button className="bg-gray-700 w-12 h-12 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('D')}>▼</button>
+                                        <button className="bg-gray-700 w-12 h-12 rounded-lg flex items-center justify-center hover:bg-blue-600 shadow-lg active:scale-95 transition-all" onClick={()=>moveHero('R')}>▶</button>
                                     </div>
                                 )}
                             </div>
@@ -468,29 +469,29 @@
                     case 'traffic_light':
                         return (
                             <div className="h-full bg-slate-900 flex flex-col items-center justify-center gap-8 p-4 cursor-pointer" onClick={toggleTraffic}>
-                                <div className="bg-black p-6 rounded-[2rem] flex flex-col gap-4 shadow-2xl border-4 border-gray-700">
-                                    <div className={`w-16 h-16 rounded-full transition-all duration-300 border-4 border-black ${trafficState===0 ? 'bg-red-500 shadow-[0_0_40px_red] scale-110' : 'bg-red-950 opacity-30'}`}></div>
-                                    <div className={`w-16 h-16 rounded-full transition-all duration-300 border-4 border-black ${trafficState===1 ? 'bg-yellow-400 shadow-[0_0_40px_yellow] scale-110' : 'bg-yellow-900 opacity-30'}`}></div>
-                                    <div className={`w-16 h-16 rounded-full transition-all duration-300 border-4 border-black ${trafficState===2 ? 'bg-green-500 shadow-[0_0_40px_green] scale-110' : 'bg-green-950 opacity-30'}`}></div>
+                                <div className="bg-black p-10 rounded-[3rem] flex flex-col gap-6 shadow-2xl border-4 border-gray-700">
+                                    <div className={`w-24 h-24 rounded-full transition-all duration-300 border-4 border-black ${trafficState===0 ? 'bg-red-500 shadow-[0_0_60px_red] scale-110' : 'bg-red-950 opacity-30'}`}></div>
+                                    <div className={`w-24 h-24 rounded-full transition-all duration-300 border-4 border-black ${trafficState===1 ? 'bg-yellow-400 shadow-[0_0_60px_yellow] scale-110' : 'bg-yellow-900 opacity-30'}`}></div>
+                                    <div className={`w-24 h-24 rounded-full transition-all duration-300 border-4 border-black ${trafficState===2 ? 'bg-green-500 shadow-[0_0_60px_green] scale-110' : 'bg-green-950 opacity-30'}`}></div>
                                 </div>
-                                <div className="text-xl text-gray-400 font-mono tracking-widest border border-gray-700 px-4 py-2 rounded bg-black">
+                                <div className="text-2xl text-gray-400 font-mono tracking-widest border border-gray-700 px-6 py-3 rounded bg-black">
                                     STATUS: <span className="text-white font-bold">0x{trafficState.toString(16).toUpperCase()}</span>
                                 </div>
                             </div>
                         );
                     case 'memory_map':
                         return (
-                            <div className="h-full bg-slate-900 p-4 font-mono flex flex-col">
-                                <div className="text-sm text-gray-400 mb-4 font-bold border-b border-gray-700 pb-2">KERNEL HEAP DUMP (Start: 0x4000)</div>
-                                <div className="grid grid-cols-4 gap-3 flex-1 content-start">
+                            <div className="h-full bg-slate-900 p-6 font-mono flex flex-col">
+                                <div className="text-base text-gray-400 mb-4 font-bold border-b border-gray-700 pb-2">KERNEL HEAP DUMP (Start: 0x4000)</div>
+                                <div className="grid grid-cols-4 gap-4 flex-1 content-start">
                                     {memBlocks.map((active, i) => (
-                                        <div key={i} onClick={() => toggleMem(i)} className={`h-12 md:h-16 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-center text-xs font-bold relative group ${active ? 'bg-green-600/20 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-gray-800/50 border-gray-700 text-gray-600 hover:bg-gray-800'}`}>
+                                        <div key={i} onClick={() => toggleMem(i)} className={`h-16 md:h-24 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-center text-sm md:text-base font-bold relative group ${active ? 'bg-green-600/20 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-gray-800/50 border-gray-700 text-gray-600 hover:bg-gray-800'}`}>
                                             0x{(4000 + i*4).toString(16)}
-                                            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
+                                            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-4 p-3 bg-black rounded-lg border border-gray-800 text-xs md:text-sm text-blue-300 font-mono">
+                                <div className="mt-4 p-4 bg-black rounded-xl border border-gray-800 text-sm md:text-base text-blue-300 font-mono">
                                     > Allocated: <span className="text-white font-bold">{memBlocks.filter(Boolean).length * 64}</span> Bytes
                                     <br/>> Free: <span className="text-white font-bold">{(16 - memBlocks.filter(Boolean).length) * 64}</span> Bytes
                                 </div>
@@ -498,95 +499,95 @@
                         );
                     case 'bank_log':
                         return (
-                            <div className="h-full bg-blue-950 p-4 font-mono text-sm md:text-base text-blue-100 flex flex-col">
-                                <div className="border-b-2 border-blue-800 pb-2 mb-4 font-bold flex justify-between">
+                            <div className="h-full bg-blue-950 p-6 font-mono text-base md:text-lg text-blue-100 flex flex-col">
+                                <div className="border-b-2 border-blue-800 pb-3 mb-4 font-bold flex justify-between text-xl">
                                     <span>ATM TERMINAL v2.0</span>
                                     <span className="animate-pulse text-green-400">ONLINE</span>
                                 </div>
-                                <div className="flex-1 overflow-hidden font-mono space-y-2">
+                                <div className="flex-1 overflow-hidden font-mono space-y-3">
                                     {logs.map((l, i) => (
-                                        <div key={i} className="opacity-80 border-l-2 border-blue-700 pl-2">
+                                        <div key={i} className="opacity-80 border-l-2 border-blue-700 pl-3">
                                             <span className="text-blue-400">[{new Date().toLocaleTimeString()}]</span> TR_ID#{1000+i}: {l.includes('Linker') ? 'Transaction Pending' : 'Verifying...'}
                                         </div>
                                     ))}
-                                    <div className="text-yellow-400 mt-4 animate-bounce font-bold text-center border-2 border-yellow-400/30 p-2 rounded bg-yellow-400/10">PLEASE INSERT CARD...</div>
+                                    <div className="text-yellow-400 mt-6 animate-bounce font-bold text-center border-2 border-yellow-400/30 p-3 rounded-lg bg-yellow-400/10 text-xl">PLEASE INSERT CARD...</div>
                                 </div>
                             </div>
                         );
                     case 'sort_visual':
                         return (
                             <div className="h-full bg-slate-800 p-8 flex flex-col items-center justify-center cursor-pointer" onClick={shuffleSort}>
-                                <div className="flex items-end gap-2 md:gap-4 h-64 w-full justify-center bg-black/30 p-4 rounded-xl border border-gray-700">
+                                <div className="flex items-end gap-3 md:gap-6 h-80 w-full justify-center bg-black/30 p-6 rounded-2xl border border-gray-700">
                                     {sortData.map((val, i) => (
-                                        <div key={i} style={{height: `${val*10}%`}} className="w-8 md:w-12 bg-gradient-to-t from-purple-700 to-purple-400 rounded-t-lg transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.4)] relative group">
-                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity">{val}</div>
+                                        <div key={i} style={{height: `${val*10}%`}} className="w-10 md:w-16 bg-gradient-to-t from-purple-700 to-purple-400 rounded-t-xl transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] relative group">
+                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black px-2 py-1 rounded border border-gray-700">{val}</div>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="text-sm text-gray-400 mt-4 font-mono bg-black px-4 py-2 rounded-full border border-gray-700 hover:border-purple-500 transition-colors">Click to Shuffle Array</div>
+                                <div className="text-lg text-gray-400 mt-6 font-mono bg-black px-6 py-3 rounded-full border border-gray-700 hover:border-purple-500 transition-colors">Click to Shuffle Array</div>
                             </div>
                         );
 
                     // C#
                     case 'login_form':
                         return (
-                            <div className="h-full bg-slate-800 p-4 flex flex-col items-center justify-center">
-                                <div className="bg-gray-100 rounded-lg w-full max-w-sm flex flex-col shadow-2xl overflow-hidden transform scale-110">
-                                    <div className="bg-gradient-to-r from-blue-700 to-blue-900 h-8 flex items-center px-3 justify-between">
-                                        <span className="text-white text-xs font-bold">LoginApp.exe</span>
-                                        <div className="flex gap-1">
-                                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <div className="h-full bg-slate-800 p-8 flex flex-col items-center justify-center">
+                                <div className="bg-gray-100 rounded-xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden transform scale-125">
+                                    <div className="bg-gradient-to-r from-blue-700 to-blue-900 h-10 flex items-center px-4 justify-between">
+                                        <span className="text-white text-sm font-bold">LoginApp.exe</span>
+                                        <div className="flex gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                                         </div>
                                     </div>
-                                    <div className="p-8 flex flex-col gap-4 items-center justify-center min-h-[200px] bg-white">
+                                    <div className="p-10 flex flex-col gap-6 items-center justify-center min-h-[300px] bg-white">
                                         {loginState === 'success' ? (
-                                            <div className="text-green-600 font-bold animate-in zoom-in duration-300 flex flex-col items-center gap-2">
-                                                <div className="p-3 bg-green-100 rounded-full"><CheckCircle size={48}/></div>
-                                                <span className="text-lg">Login Successful</span>
+                                            <div className="text-green-600 font-bold animate-in zoom-in duration-300 flex flex-col items-center gap-4">
+                                                <div className="p-4 bg-green-100 rounded-full"><CheckCircle size={64}/></div>
+                                                <span className="text-2xl">Login Successful</span>
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-2">
-                                                    <User size={32} className="text-gray-400"/>
+                                                <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                                                    <User size={48} className="text-gray-400"/>
                                                 </div>
-                                                <div className="w-full h-10 bg-gray-50 border border-gray-300 rounded px-3 text-sm flex items-center text-gray-400 shadow-inner">Username</div>
-                                                <div className="w-full h-10 bg-gray-50 border border-gray-300 rounded px-3 text-sm flex items-center text-gray-400 shadow-inner">••••••••</div>
-                                                <button onClick={tryLogin} className={`w-full py-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded shadow-lg transition-all active:scale-95 ${loginState==='processing'?'opacity-70 cursor-wait':''}`}>
+                                                <div className="w-full h-12 bg-gray-50 border border-gray-300 rounded px-4 text-base flex items-center text-gray-400 shadow-inner">Username</div>
+                                                <div className="w-full h-12 bg-gray-50 border border-gray-300 rounded px-4 text-base flex items-center text-gray-400 shadow-inner">••••••••</div>
+                                                <button onClick={tryLogin} className={`w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 text-white text-base font-bold rounded shadow-lg transition-all active:scale-95 ${loginState==='processing'?'opacity-70 cursor-wait':''}`}>
                                                     {loginState==='processing'?'Connecting...':'Login'}
                                                 </button>
                                             </>
                                         )}
                                     </div>
                                 </div>
-                                <div className="mt-6 text-xs text-gray-500 font-mono bg-black/50 px-4 py-2 rounded-full border border-gray-700">
+                                <div className="mt-10 text-sm text-gray-500 font-mono bg-black/50 px-6 py-3 rounded-full border border-gray-700">
                                     Debug Console: Waiting for user input...
                                 </div>
                             </div>
                         );
                     case 'inventory_list':
                         return (
-                            <div className="h-full bg-white text-black p-4 font-sans text-sm flex flex-col shadow-inner">
-                                <div className="font-bold border-b-2 border-gray-200 pb-2 mb-2 text-lg flex justify-between items-center">
+                            <div className="h-full bg-white text-black p-6 font-sans text-base flex flex-col shadow-inner">
+                                <div className="font-bold border-b-2 border-gray-200 pb-3 mb-3 text-xl flex justify-between items-center">
                                     <span>Stock Manager</span>
-                                    <span className="text-xs font-normal bg-green-100 text-green-800 px-2 py-1 rounded-full">Connected</span>
+                                    <span className="text-sm font-normal bg-green-100 text-green-800 px-3 py-1 rounded-full">Connected</span>
                                 </div>
-                                <table className="w-full text-left border-collapse">
+                                <table className="w-full text-left border-collapse text-lg">
                                     <thead>
-                                        <tr className="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
-                                            <th className="p-2 rounded-l">ID</th>
-                                            <th className="p-2">Item</th>
-                                            <th className="p-2 rounded-r text-right">Qty</th>
+                                        <tr className="bg-gray-100 text-gray-600 text-sm uppercase tracking-wider">
+                                            <th className="p-3 rounded-l">ID</th>
+                                            <th className="p-3">Item</th>
+                                            <th className="p-3 rounded-r text-right">Qty</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-3 font-mono text-gray-500">#001</td><td className="p-3 font-bold">Apple MacBook</td><td className="p-3 text-right font-mono text-blue-600 font-bold">{Math.floor(progress/5)}</td></tr>
-                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-3 font-mono text-gray-500">#002</td><td className="p-3 font-bold">Dell XPS 15</td><td className="p-3 text-right font-mono text-blue-600 font-bold">12</td></tr>
-                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-3 font-mono text-gray-500">#003</td><td className="p-3 font-bold">Logitech Mouse</td><td className="p-3 text-right font-mono text-blue-600 font-bold">8</td></tr>
-                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-3 font-mono text-gray-500">#004</td><td className="p-3 font-bold">Mechanical Key</td><td className="p-3 text-right font-mono text-blue-600 font-bold">45</td></tr>
+                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-4 font-mono text-gray-500">#001</td><td className="p-4 font-bold">Apple MacBook</td><td className="p-4 text-right font-mono text-blue-600 font-bold text-xl">{Math.floor(progress/5)}</td></tr>
+                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-4 font-mono text-gray-500">#002</td><td className="p-4 font-bold">Dell XPS 15</td><td className="p-4 text-right font-mono text-blue-600 font-bold text-xl">12</td></tr>
+                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-4 font-mono text-gray-500">#003</td><td className="p-4 font-bold">Logitech Mouse</td><td className="p-4 text-right font-mono text-blue-600 font-bold text-xl">8</td></tr>
+                                        <tr className="hover:bg-blue-50 transition-colors"><td className="p-4 font-mono text-gray-500">#004</td><td className="p-4 font-bold">Mechanical Key</td><td className="p-4 text-right font-mono text-blue-600 font-bold text-xl">45</td></tr>
                                     </tbody>
                                 </table>
-                                <div className="mt-auto bg-gray-50 p-2 text-gray-400 text-xs border-t border-gray-200 flex justify-between">
+                                <div className="mt-auto bg-gray-50 p-3 text-gray-400 text-sm border-t border-gray-200 flex justify-between">
                                     <span>Database: SQL_Store_V1</span>
                                     <span>Latency: 24ms</span>
                                 </div>
@@ -594,49 +595,49 @@
                         );
                     case 'unity_box':
                         return (
-                            <div className="h-full bg-slate-800 flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden relative" onClick={rotateCube}>
+                            <div className="h-full bg-slate-800 flex flex-col items-center justify-center p-8 cursor-pointer overflow-hidden relative" onClick={rotateCube}>
                                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-                                <div className="absolute top-4 left-4 text-white/50 text-xs font-mono">
+                                <div className="absolute top-6 left-6 text-white/50 text-sm font-mono">
                                     <div>Transform: Rotate</div>
                                     <div>X: 0.0 Y: {cubeRot}.0 Z: 0.0</div>
                                 </div>
                                 <div 
-                                    className="w-32 h-32 md:w-48 md:h-48 bg-gradient-to-br from-blue-500 to-indigo-600 border-2 border-blue-300/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] transition-transform duration-700 ease-out flex items-center justify-center relative transform-style-3d"
-                                    style={{ transform: `perspective(800px) rotateY(${cubeRot}deg) rotateX(15deg)` }}
+                                    className="w-48 h-48 md:w-64 md:h-64 bg-gradient-to-br from-blue-500 to-indigo-600 border-4 border-blue-300/50 shadow-[0_0_80px_rgba(59,130,246,0.3)] transition-transform duration-700 ease-out flex items-center justify-center relative transform-style-3d"
+                                    style={{ transform: `perspective(1000px) rotateY(${cubeRot}deg) rotateX(15deg)` }}
                                 >
-                                    <div className="text-white font-bold text-2xl opacity-80 mix-blend-overlay">UNITY</div>
-                                    <div className="absolute inset-0 border border-white/20"></div>
+                                    <div className="text-white font-bold text-4xl opacity-80 mix-blend-overlay">UNITY</div>
+                                    <div className="absolute inset-0 border-2 border-white/20"></div>
                                 </div>
-                                <div className="absolute bottom-4 text-xs text-white/30 font-mono">Click to interact with Game Object</div>
+                                <div className="absolute bottom-6 text-sm text-white/30 font-mono">Click to interact with Game Object</div>
                             </div>
                         );
 
                     default:
-                        return <div className="flex items-center justify-center h-full text-gray-500">Preview Loading...</div>;
+                        return <div className="flex items-center justify-center h-full text-gray-500 text-xl">Preview Loading...</div>;
                 }
             };
 
             return (
                 <div className="w-full h-full bg-gray-950 border-l border-gray-800 relative shadow-2xl flex flex-col">
-                    <div className="bg-black/50 backdrop-blur-sm text-xs p-3 border-b border-gray-800 flex justify-between text-gray-300 items-center select-none">
-                         <div className="flex items-center gap-2">
-                            <Monitor size={14} className="text-blue-500"/>
-                            <span className="font-bold tracking-wider text-blue-100">{language} BUILD PREVIEW</span>
+                    <div className="bg-black/50 backdrop-blur-sm text-sm p-4 border-b border-gray-800 flex justify-between text-gray-300 items-center select-none">
+                         <div className="flex items-center gap-3">
+                            <Monitor size={18} className="text-blue-500"/>
+                            <span className="font-bold tracking-wider text-blue-100 text-lg">{language} BUILD PREVIEW</span>
                          </div>
                          {isInteractive ? 
-                            <span className="bg-green-900/30 text-green-400 border border-green-800 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse flex items-center gap-1">
-                                <Activity size={10}/> INTERACTIVE
+                            <span className="bg-green-900/30 text-green-400 border border-green-800 px-3 py-1 rounded text-xs font-bold animate-pulse flex items-center gap-2">
+                                <Activity size={14}/> INTERACTIVE
                             </span> : 
-                            <span className="text-gray-600 text-[10px] font-mono">WAITING FOR COMPILE...</span>
+                            <span className="text-gray-600 text-xs font-mono">WAITING FOR COMPILE...</span>
                          }
                     </div>
                     <div className="flex-1 relative bg-gray-900/50 overflow-hidden">
                         {language ? renderContent() : (
-                             <div className="h-full flex flex-col items-center justify-center text-gray-700 gap-4">
-                                <div className="p-6 rounded-full bg-gray-900 border border-gray-800">
-                                    <Code2 size={64} className="opacity-20" />
+                             <div className="h-full flex flex-col items-center justify-center text-gray-700 gap-6">
+                                <div className="p-8 rounded-full bg-gray-900 border border-gray-800">
+                                    <Code2 size={80} className="opacity-20" />
                                 </div>
-                                <span className="text-sm font-mono tracking-widest uppercase">Select language to initialize</span>
+                                <span className="text-lg font-mono tracking-widest uppercase">Select language to initialize</span>
                             </div>
                         )}
                     </div>
@@ -945,7 +946,7 @@
                     ) : (
                         <>
                             {/* Code Area - Increased Text Size */}
-                            <div className="flex-1 overflow-y-auto p-6 md:p-8 font-mono text-base md:text-lg leading-loose relative custom-scrollbar" onClick={() => difficulty === 'hardcore' && inputRef.current?.focus()}>
+                            <div className="flex-1 overflow-y-auto p-6 md:p-8 font-mono text-lg md:text-xl leading-loose relative custom-scrollbar" onClick={() => difficulty === 'hardcore' && inputRef.current?.focus()}>
                                 {displayCode.map((line, idx) => (
                                     <div key={idx} className={`${line.type === 'filler' ? 'text-slate-600 opacity-30 blur-[0.5px]' : ''} mb-2 whitespace-pre-wrap`}>
                                         {line.type === 'comment' && <span className="text-green-600/80 italic font-bold">{line.text}</span>}
@@ -999,11 +1000,11 @@
 
                             {/* Input / Options Area - Full Width Bottom */}
                             {!typing && gameState === 'playing' && (
-                                <div className="bg-slate-900 border-t border-slate-800 animate-slide-up p-6 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+                                <div className="bg-slate-900 border-t border-slate-800 animate-slide-up p-8 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
                                     {difficulty === 'hardcore' ? (
-                                        <div className="flex items-center gap-4 max-w-5xl mx-auto">
-                                            <div className="flex-1 flex items-center bg-black p-4 rounded-xl border border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all shadow-inner">
-                                                <span className="text-green-500 font-mono font-bold mr-3 animate-pulse text-lg">{'>'}</span>
+                                        <div className="flex items-center gap-4 max-w-6xl mx-auto">
+                                            <div className="flex-1 flex items-center bg-black p-6 rounded-2xl border border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all shadow-inner">
+                                                <span className="text-green-500 font-mono font-bold mr-4 animate-pulse text-2xl">{'>'}</span>
                                                 <form 
                                                     className="flex-1"
                                                     onSubmit={(e) => { e.preventDefault(); handleAnswer(userAnswer); }}
@@ -1013,31 +1014,31 @@
                                                         type="text" 
                                                         value={userAnswer}
                                                         onChange={(e) => setUserAnswer(e.target.value)}
-                                                        className="w-full bg-transparent border-none outline-none text-white font-mono text-xl placeholder-slate-600"
+                                                        className="w-full bg-transparent border-none outline-none text-white font-mono text-2xl placeholder-slate-600"
                                                         placeholder={hardcoreQueue.length > 0 ? "Type the missing code keyword..." : "Processing..."}
                                                         autoFocus
                                                         autoComplete="off"
                                                     />
                                                 </form>
                                             </div>
-                                            <div className="flex flex-col items-end min-w-[100px]">
-                                                <span className="text-2xl font-bold text-white">{hardcoreQueue.length}</span>
-                                                <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Remaining</span>
+                                            <div className="flex flex-col items-end min-w-[120px]">
+                                                <span className="text-4xl font-bold text-white">{hardcoreQueue.length}</span>
+                                                <span className="text-sm text-slate-500 uppercase font-bold tracking-wider">Remaining</span>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-2 gap-4 max-w-5xl mx-auto">
+                                        <div className="grid grid-cols-2 gap-6 max-w-6xl mx-auto">
                                             {currentScenario.questions[currentQIndex].options.map((opt, idx) => (
                                                 <button
                                                     key={idx}
                                                     onClick={() => handleAnswer(opt)}
-                                                    className="bg-slate-800 hover:bg-blue-600 p-5 rounded-xl text-left font-mono text-lg border border-slate-700 hover:border-blue-400 transition-all text-white group flex justify-between items-center shadow-lg hover:-translate-y-1"
+                                                    className="bg-slate-800 hover:bg-blue-600 p-6 rounded-2xl text-left font-mono text-xl border border-slate-700 hover:border-blue-400 transition-all text-white group flex justify-between items-center shadow-lg hover:-translate-y-1"
                                                 >
                                                     <span className="flex items-center">
                                                         <span className="text-slate-500 mr-4 group-hover:text-blue-200 font-bold">{String.fromCharCode(65+idx)}.</span>
                                                         {opt}
                                                     </span>
-                                                    <ChevronRight size={20} className="opacity-0 group-hover:opacity-100 transition-opacity text-white" />
+                                                    <ChevronRight size={24} className="opacity-0 group-hover:opacity-100 transition-opacity text-white" />
                                                 </button>
                                             ))}
                                         </div>
@@ -1047,26 +1048,26 @@
 
                             {/* Feedback Overlay */}
                             {gameState === 'feedback' && (
-                                <div className={`p-6 border-t ${feedback.correct ? 'bg-green-900/90 border-green-500' : 'bg-red-900/90 border-red-500'} backdrop-blur-md z-30 animate-slide-up shadow-[0_-10px_50px_rgba(0,0,0,0.5)]`}>
-                                    <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-6 items-center justify-between">
+                                <div className={`p-8 border-t ${feedback.correct ? 'bg-green-900/90 border-green-500' : 'bg-red-900/90 border-red-500'} backdrop-blur-md z-30 animate-slide-up shadow-[0_-10px_50px_rgba(0,0,0,0.5)]`}>
+                                    <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 items-center justify-between">
                                         <div>
                                             <div className="flex items-center mb-2">
-                                                {feedback.correct ? <CheckCircle className="text-green-400 mr-3" size={28}/> : <XCircle className="text-red-400 mr-3" size={28}/>}
-                                                <span className={`font-black text-2xl ${feedback.correct ? 'text-green-100' : 'text-red-100'}`}>
+                                                {feedback.correct ? <CheckCircle className="text-green-400 mr-3" size={32}/> : <XCircle className="text-red-400 mr-3" size={32}/>}
+                                                <span className={`font-black text-3xl ${feedback.correct ? 'text-green-100' : 'text-red-100'}`}>
                                                     {feedback.correct ? "COMPILATION SUCCESS" : "SYNTAX ERROR"}
                                                 </span>
                                             </div>
-                                            <p className="text-base md:text-lg text-slate-200 font-mono pl-10 opacity-90">{currentScenario.questions[currentQIndex].explanation}</p>
+                                            <p className="text-xl md:text-2xl text-slate-200 font-mono pl-12 opacity-90">{currentScenario.questions[currentQIndex].explanation}</p>
                                         </div>
                                         
-                                        <div className="flex gap-3 w-full md:w-auto">
+                                        <div className="flex gap-4 w-full md:w-auto">
                                             {feedback.correct ? (
-                                                <button onClick={nextQuestion} className="w-full md:w-auto bg-white text-black hover:bg-gray-200 px-8 py-3 rounded-xl text-base font-bold flex items-center justify-center transition-all shadow-lg hover:scale-105">
-                                                    NEXT STEP <Play className="w-4 h-4 ml-2 fill-current" />
+                                                <button onClick={nextQuestion} className="w-full md:w-auto bg-white text-black hover:bg-gray-200 px-10 py-4 rounded-2xl text-lg font-bold flex items-center justify-center transition-all shadow-lg hover:scale-105">
+                                                    NEXT STEP <Play className="w-5 h-5 ml-2 fill-current" />
                                                 </button>
                                             ) : (
-                                                <button onClick={lives > 0 ? retryQuestion : () => endGame(false)} className={`w-full md:w-auto px-8 py-3 rounded-xl text-base font-bold flex items-center justify-center transition-all shadow-lg hover:scale-105 ${lives > 0 ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-red-600 text-white hover:bg-red-500'}`}>
-                                                    {lives > 0 ? "RETRY (DEBUG)" : "SYSTEM FAILURE"} <RotateCcw className="w-4 h-4 ml-2" />
+                                                <button onClick={lives > 0 ? retryQuestion : () => endGame(false)} className={`w-full md:w-auto px-10 py-4 rounded-2xl text-lg font-bold flex items-center justify-center transition-all shadow-lg hover:scale-105 ${lives > 0 ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-red-600 text-white hover:bg-red-500'}`}>
+                                                    {lives > 0 ? "RETRY (DEBUG)" : "SYSTEM FAILURE"} <RotateCcw className="w-5 h-5 ml-2" />
                                                 </button>
                                             )}
                                         </div>
@@ -1077,8 +1078,8 @@
                     )}
                 </div>
 
-                {/* RIGHT PANEL: Live Preview (Increased Width: 40%) */}
-                <div className="w-full md:w-[40%] border-t md:border-t-0 md:border-l border-slate-800 bg-black h-[35vh] md:h-full transition-all duration-300 relative z-10 shadow-2xl">
+                {/* RIGHT PANEL: Live Preview (Increased Width: 45%) */}
+                <div className="w-full md:w-[45%] border-t md:border-t-0 md:border-l border-slate-800 bg-black h-[35vh] md:h-full transition-all duration-300 relative z-10 shadow-2xl">
                      <ProjectPreview 
                         language={selectedLanguage} 
                         scenarioType={currentScenario ? currentScenario.type : null}
