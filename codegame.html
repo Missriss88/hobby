@@ -48,87 +48,286 @@
             Trophy: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
             RefreshCw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
             User: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            Box: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
+            Wifi: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
         };
 
-        const { Terminal, Play, RotateCcw, CheckCircle, XCircle, Code2, Cpu, Trophy, RefreshCw, User, ChevronRight } = Icons;
+        const { Terminal, Play, RotateCcw, CheckCircle, XCircle, Code2, Cpu, Trophy, RefreshCw, User, ChevronRight, Box, Wifi } = Icons;
 
-        // --- DATASET ---
-        const LANGUAGES = {
-            PYTHON: 'Python',
-            C: 'C',
-            CSHARP: 'C#',
-            CPP: 'C++'
-        };
-
-        const QUESTIONS_SOURCE = {
-            [LANGUAGES.PYTHON]: [
-                { context: "Step 1: 데이터 분석 라이브러리 로드", preCode: "", gap: "import", postCode: " pandas as pd\nimport math", options: ["include", "using", "import", "require"], answer: "import", explanation: "라이브러리를 사용할 때는 import 키워드를 씁니다." },
-                { context: "Step 2: 데이터셋 파일 열기", preCode: "with ", gap: "open", postCode: "(\"dataset.csv\", \"r\") as f:\n    raw_data = f.readlines()", options: ["file", "load", "open", "read"], answer: "open", explanation: "파일을 안전하게 열 때는 with open(...) 패턴을 사용합니다." },
-                { context: "Step 3: 데이터 파싱 (문자열 분리)", preCode: "header = raw_data[0].strip().", gap: "split", postCode: "(\",\")", options: ["slice", "divide", "split", "cut"], answer: "split", explanation: "CSV 데이터를 쉼표 기준으로 나누려면 split을 사용합니다." },
-                { context: "Step 4: AI 모델 클래스 정의", preCode: "class AIModel:\n    def ", gap: "__init__", postCode: "(self, learning_rate):\n        self.lr = learning_rate", options: ["__main__", "__init__", "start", "__new__"], answer: "__init__", explanation: "클래스의 초기화 메서드는 __init__입니다." },
-                { context: "Step 5: 학습 메서드 정의", preCode: "    ", gap: "def", postCode: " train(self, data):\n        print(\"Training started...\")", options: ["function", "def", "func", "void"], answer: "def", explanation: "함수(메서드) 정의는 def로 시작합니다." },
-                { context: "Step 6: 학습 루프 (에포크 반복)", preCode: "        epochs = 10\n        for i in ", gap: "range", postCode: "(epochs):\n            self.optimize()", options: ["loop", "range", "xrange", "list"], answer: "range", explanation: "지정된 횟수만큼 반복하려면 range를 사용합니다." },
-                { context: "Step 7: 손실값 기록 (리스트 추가)", preCode: "        history = []\n        history.", gap: "append", postCode: "(current_loss)", options: ["push", "add", "insert", "append"], answer: "append", explanation: "리스트에 값을 추가할 때는 append를 사용합니다." },
-                { context: "Step 8: 학습 중단 조건 확인", preCode: "            ", gap: "if", postCode: " current_loss < 0.01:\n                break", options: ["when", "check", "if", "case"], answer: "if", explanation: "조건을 검사할 때는 if문을 사용합니다." },
-                { context: "Step 9: 예외 처리 (0으로 나누기 방지)", preCode: "        ", gap: "try", postCode: ":\n            accuracy = correct / total\n        except ZeroDivisionError:\n            accuracy = 0", options: ["try", "attempt", "do", "begin"], answer: "try", explanation: "에러가 발생할 수 있는 코드는 try 블록에 넣습니다." },
-                { context: "Step 10: 정확도 반올림", preCode: "        print(f\"Acc: {", gap: "round", postCode: "(accuracy, 4)}\")", options: ["ceil", "floor", "round", "fix"], answer: "round", explanation: "소수점을 정리할 때는 round 함수를 씁니다." },
-                { context: "Step 11: 람다 함수로 전처리", preCode: "normalize = ", gap: "lambda", postCode: " x: x / 255.0", options: ["func", "def", "lambda", "arrow"], answer: "lambda", explanation: "간단한 익명 함수는 lambda로 정의합니다." },
-                { context: "Step 12: 설정값 존재 확인", preCode: "config = {'batch': 32}\nif 'batch' ", gap: "in", postCode: " config:\n    print(\"Batch size set\")", options: ["has", "in", "exists", "contains"], answer: "in", explanation: "딕셔너리 키 존재 여부는 in 연산자로 확인합니다." },
-                { context: "Step 13: 데이터 검증 (모두 통과?)", preCode: "validations = [True, True, True]\nis_valid = ", gap: "all", postCode: "(validations)", options: ["every", "all", "check", "sum"], answer: "all", explanation: "모든 요소가 참인지 확인할 때는 all()을 사용합니다." },
-                { context: "Step 14: 데이터셋 크기 확인", preCode: "n_samples = ", gap: "len", postCode: "(raw_data)", options: ["length", "size", "count", "len"], answer: "len", explanation: "리스트나 문자열의 길이는 len()입니다." },
-                { context: "Step 15: 결과 출력 및 서버 시작", preCode: "print(\"System Ready\")\n", gap: "print", postCode: "(\"Server listening on port 8080...\")", options: ["printf", "echo", "print", "write"], answer: "print", explanation: "화면에 메시지를 출력할 때는 print를 사용합니다." }
+        // --- SCENARIO DATA (3 Per Language) ---
+        const SCENARIOS = {
+            'Python': [
+                {
+                    id: 'py_ai',
+                    type: 'ai_chart',
+                    title: 'AI 모델 학습',
+                    questions: [
+                        { context: "Step 1: 데이터 분석 라이브러리 로드", preCode: "", gap: "import", postCode: " pandas as pd\nimport math", options: ["include", "using", "import", "require"], answer: "import", explanation: "라이브러리를 사용할 때는 import 키워드를 씁니다." },
+                        { context: "Step 2: 데이터셋 파일 열기", preCode: "with ", gap: "open", postCode: "(\"dataset.csv\", \"r\") as f:\n    raw_data = f.readlines()", options: ["file", "load", "open", "read"], answer: "open", explanation: "파일을 안전하게 열 때는 with open(...) 패턴을 사용합니다." },
+                        { context: "Step 3: 데이터 파싱 (문자열 분리)", preCode: "header = raw_data[0].strip().", gap: "split", postCode: "(\",\")", options: ["slice", "divide", "split", "cut"], answer: "split", explanation: "CSV 데이터를 쉼표 기준으로 나누려면 split을 사용합니다." },
+                        { context: "Step 4: AI 모델 클래스 정의", preCode: "class AIModel:\n    def ", gap: "__init__", postCode: "(self, learning_rate):\n        self.lr = learning_rate", options: ["__main__", "__init__", "start", "__new__"], answer: "__init__", explanation: "클래스의 초기화 메서드는 __init__입니다." },
+                        { context: "Step 5: 학습 메서드 정의", preCode: "    ", gap: "def", postCode: " train(self, data):\n        print(\"Training started...\")", options: ["function", "def", "func", "void"], answer: "def", explanation: "함수(메서드) 정의는 def로 시작합니다." },
+                        { context: "Step 6: 학습 루프 (에포크 반복)", preCode: "        epochs = 10\n        for i in ", gap: "range", postCode: "(epochs):\n            self.optimize()", options: ["loop", "range", "xrange", "list"], answer: "range", explanation: "지정된 횟수만큼 반복하려면 range를 사용합니다." },
+                        { context: "Step 7: 손실값 기록 (리스트 추가)", preCode: "        history = []\n        history.", gap: "append", postCode: "(current_loss)", options: ["push", "add", "insert", "append"], answer: "append", explanation: "리스트에 값을 추가할 때는 append를 사용합니다." },
+                        { context: "Step 8: 학습 중단 조건 확인", preCode: "            ", gap: "if", postCode: " current_loss < 0.01:\n                break", options: ["when", "check", "if", "case"], answer: "if", explanation: "조건을 검사할 때는 if문을 사용합니다." },
+                        { context: "Step 9: 예외 처리 (0으로 나누기 방지)", preCode: "        ", gap: "try", postCode: ":\n            accuracy = correct / total\n        except ZeroDivisionError:\n            accuracy = 0", options: ["try", "attempt", "do", "begin"], answer: "try", explanation: "에러가 발생할 수 있는 코드는 try 블록에 넣습니다." },
+                        { context: "Step 10: 정확도 반올림", preCode: "        print(f\"Acc: {", gap: "round", postCode: "(accuracy, 4)}\")", options: ["ceil", "floor", "round", "fix"], answer: "round", explanation: "소수점을 정리할 때는 round 함수를 씁니다." },
+                        { context: "Step 11: 람다 함수로 전처리", preCode: "normalize = ", gap: "lambda", postCode: " x: x / 255.0", options: ["func", "def", "lambda", "arrow"], answer: "lambda", explanation: "간단한 익명 함수는 lambda로 정의합니다." },
+                        { context: "Step 12: 설정값 존재 확인", preCode: "config = {'batch': 32}\nif 'batch' ", gap: "in", postCode: " config:\n    print(\"Batch size set\")", options: ["has", "in", "exists", "contains"], answer: "in", explanation: "딕셔너리 키 존재 여부는 in 연산자로 확인합니다." },
+                        { context: "Step 13: 데이터 검증 (모두 통과?)", preCode: "validations = [True, True, True]\nis_valid = ", gap: "all", postCode: "(validations)", options: ["every", "all", "check", "sum"], answer: "all", explanation: "모든 요소가 참인지 확인할 때는 all()을 사용합니다." },
+                        { context: "Step 14: 데이터셋 크기 확인", preCode: "n_samples = ", gap: "len", postCode: "(raw_data)", options: ["length", "size", "count", "len"], answer: "len", explanation: "리스트나 문자열의 길이는 len()입니다." },
+                        { context: "Step 15: 결과 출력 및 서버 시작", preCode: "print(\"System Ready\")\n", gap: "print", postCode: "(\"Server listening on port 8080...\")", options: ["printf", "echo", "print", "write"], answer: "print", explanation: "화면에 메시지를 출력할 때는 print를 사용합니다." }
+                    ]
+                },
+                {
+                    id: 'py_scraper',
+                    type: 'scraper_log',
+                    title: '웹 크롤러',
+                    questions: [
+                        { context: "Step 1: HTTP 요청 라이브러리 로드", preCode: "", gap: "import", postCode: " requests\nfrom bs4 import BeautifulSoup", options: ["include", "get", "import", "using"], answer: "import", explanation: "외부 라이브러리를 사용할 때 import를 씁니다." },
+                        { context: "Step 2: 타겟 URL 설정", preCode: "url = \"https://news.site\"\nparams = {", gap: "\"page\"", postCode: ": 1}", options: ["'page'", "\"page\"", "(page)", "<page>"], answer: "\"page\"", explanation: "딕셔너리의 키는 따옴표로 감싸야 합니다." },
+                        { context: "Step 3: GET 요청 보내기", preCode: "response = requests.", gap: "get", postCode: "(url, params=params)", options: ["post", "get", "fetch", "pull"], answer: "get", explanation: "데이터를 조회할 때는 GET 메서드를 사용합니다." },
+                        { context: "Step 4: 상태 코드 확인", preCode: "if response.", gap: "status_code", postCode: " == 200:\n    print(\"Success\")", options: ["code", "status", "status_code", "result"], answer: "status_code", explanation: "응답 상태는 status_code 속성에 저장됩니다." },
+                        { context: "Step 5: HTML 파싱 객체 생성", preCode: "soup = ", gap: "BeautifulSoup", postCode: "(response.text, 'html.parser')", options: ["BS4", "BeautifulSoup", "Parser", "HTML"], answer: "BeautifulSoup", explanation: "HTML을 파싱하기 위해 BeautifulSoup 객체를 생성합니다." },
+                        { context: "Step 6: 특정 태그 모두 찾기", preCode: "titles = soup.", gap: "find_all", postCode: "('h2', class_='title')", options: ["select", "find", "find_all", "get_tags"], answer: "find_all", explanation: "해당하는 모든 태그를 리스트로 반환합니다." },
+                        { context: "Step 7: 리스트 컴프리헨션 사용", preCode: "clean_titles = [t.text.", gap: "strip", postCode: "() for t in titles]", options: ["clean", "trim", "strip", "cut"], answer: "strip", explanation: "문자열 앞뒤 공백 제거는 strip()을 사용합니다." },
+                        { context: "Step 8: JSON 모듈 임포트", preCode: "", gap: "import", postCode: " json", options: ["using", "import", "include", "require"], answer: "import", explanation: "JSON 처리를 위해 내장 모듈을 임포트합니다." },
+                        { context: "Step 9: 데이터 저장 (파일 쓰기)", preCode: "with open('news.json', ", gap: "'w'", postCode: ") as f:", options: ["'r'", "'w'", "'a'", "'wb'"], answer: "'w'", explanation: "쓰기 모드('w')로 파일을 엽니다." },
+                        { context: "Step 10: JSON 덤프", preCode: "    json.", gap: "dump", postCode: "(clean_titles, f, indent=4)", options: ["save", "write", "dump", "export"], answer: "dump", explanation: "파이썬 객체를 JSON 파일로 저장할 때 dump를 사용합니다." },
+                        { context: "Step 11: 예외 처리 (네트워크)", preCode: "except requests.", gap: "RequestException", postCode: " as e:\n    print(\"Network Error\")", options: ["Error", "RequestException", "Fail", "ConnectError"], answer: "RequestException", explanation: "requests 모듈의 기본 예외 클래스입니다." },
+                        { context: "Step 12: 메인 함수 실행 확인", preCode: "if __name__ == ", gap: "\"__main__\"", postCode: ":\n    run_scraper()", options: ["\"main\"", "\"__main__\"", "\"__init__\"", "True"], answer: "\"__main__\"", explanation: "스크립트가 직접 실행될 때만 코드를 수행합니다." },
+                        { context: "Step 13: 딜레이 추가 (매너)", preCode: "import time\ntime.", gap: "sleep", postCode: "(1)", options: ["wait", "delay", "sleep", "pause"], answer: "sleep", explanation: "실행을 잠시 멈출 때는 time.sleep()을 씁니다." },
+                        { context: "Step 14: 함수 인자 타입 힌트", preCode: "def parse_html(html: ", gap: "str", postCode: ") -> list:", options: ["string", "str", "text", "char"], answer: "str", explanation: "파이썬 문자열 타입 힌트는 str입니다." },
+                        { context: "Step 15: 작업 완료 메시지", preCode: "", gap: "print", postCode: "(f\"Saved {len(clean_titles)} articles.\")", options: ["log", "echo", "print", "write"], answer: "print", explanation: "콘솔 출력을 위해 print 함수를 사용합니다." }
+                    ]
+                },
+                {
+                    id: 'py_finance',
+                    type: 'finance_chart',
+                    title: '주식 데이터 분석',
+                    questions: [
+                        { context: "Step 1: 수치 연산 라이브러리", preCode: "import ", gap: "numpy", postCode: " as np", options: ["math", "num", "numpy", "calc"], answer: "numpy", explanation: "과학 계산에는 numpy 라이브러리가 표준입니다." },
+                        { context: "Step 2: 날짜 처리 모듈", preCode: "from datetime import ", gap: "datetime", postCode: ", timedelta", options: ["date", "time", "datetime", "calendar"], answer: "datetime", explanation: "날짜와 시간을 다룰 때 datetime 클래스를 씁니다." },
+                        { context: "Step 3: 랜덤 주가 생성", preCode: "prices = np.random.", gap: "normal", postCode: "(100, 10, 30)", options: ["rand", "normal", "int", "choice"], answer: "normal", explanation: "정규 분포를 따르는 난수를 생성합니다." },
+                        { context: "Step 4: 배열 형태 확인", preCode: "print(f\"Shape: {prices.", gap: "shape", postCode: "}\")", options: ["size", "len", "shape", "dim"], answer: "shape", explanation: "Numpy 배열의 차원은 .shape 속성으로 확인합니다." },
+                        { context: "Step 5: 이동 평균 계산 함수", preCode: "def moving_average(data, ", gap: "window", postCode: "=5):", options: ["size", "window", "range", "step"], answer: "window", explanation: "이동 평균의 구간 크기를 보통 window라고 합니다." },
+                        { context: "Step 6: 리스트 슬라이싱", preCode: "    return [sum(data[i:i+window])/", gap: "window", postCode: " for i in range(len(data)-window)]", options: ["len", "window", "count", "5"], answer: "window", explanation: "평균을 구하기 위해 구간 크기(window)로 나눕니다." },
+                        { context: "Step 7: 수익률 계산 (벡터 연산)", preCode: "returns = (prices[1:] - prices[:-1]) / prices[", gap: ":-1", postCode: "]", options: ["0", ":-1", "1:", "all"], answer: ":-1", explanation: "오늘 가격 - 어제 가격 / 어제 가격으로 수익률을 계산합니다." },
+                        { context: "Step 8: 조건부 필터링 (상승장)", preCode: "up_days = prices[prices ", gap: ">", postCode: " 100]", options: [">", "<", "==", "in"], answer: ">", explanation: "가격이 100보다 큰 요소만 선택합니다." },
+                        { context: "Step 9: 최대값 인덱스 찾기", preCode: "peak_idx = np.", gap: "argmax", postCode: "(prices)", options: ["max", "maximum", "argmax", "top"], answer: "argmax", explanation: "최대값이 위치한 인덱스는 argmax로 찾습니다." },
+                        { context: "Step 10: 데이터 결합", preCode: "data = np.", gap: "stack", postCode: "((dates, prices), axis=1)", options: ["append", "concat", "stack", "merge"], answer: "stack", explanation: "두 배열을 새로운 축으로 합칠 때 stack을 씁니다." },
+                        { context: "Step 11: CSV 저장 (Numpy)", preCode: "np.", gap: "savetxt", postCode: "(\"stock.csv\", prices, delimiter=\",\")", options: ["save", "savetxt", "dump", "write"], answer: "savetxt", explanation: "텍스트 파일로 배열을 저장할 때 savetxt를 씁니다." },
+                        { context: "Step 12: 클래스 상속 (분석기)", preCode: "class StockAnalyzer(", gap: "object", postCode: "):", options: ["class", "void", "object", "base"], answer: "object", explanation: "파이썬 2 호환성 등을 위해 object를 상속받기도 합니다(생략 가능)." },
+                        { context: "Step 13: 매직 메서드 (문자열 표현)", preCode: "    def ", gap: "__str__", postCode: "(self):\n        return \"Analyzer V1\"", options: ["__repr__", "__str__", "__init__", "toString"], answer: "__str__", explanation: "객체를 문자열로 표현할 때 __str__을 정의합니다." },
+                        { context: "Step 14: 변동성 계산 (표준편차)", preCode: "volatility = np.", gap: "std", postCode: "(returns)", options: ["var", "mean", "std", "avg"], answer: "std", explanation: "표준편차(standard deviation) 함수는 std입니다." },
+                        { context: "Step 15: 분석 리포트 출력", preCode: "print(f\"High: {prices.max():.2f}, Vol: {volatility:", gap: ".2%", postCode: "}\")", options: [".2f", ".2%", "int", "str"], answer: ".2%", explanation: "백분율 포맷팅은 .2% 형식을 사용합니다." }
+                    ]
+                }
             ],
-            [LANGUAGES.C]: [
-                { context: "Step 1: 표준 입출력 헤더 포함", preCode: "#include <", gap: "stdio.h", postCode: ">", options: ["iostream", "stdio.h", "std.h", "io.h"], answer: "stdio.h", explanation: "C언어의 표준 입출력 함수들은 stdio.h에 있습니다." },
-                { context: "Step 2: 상수 정의 (맵 크기)", preCode: "#", gap: "define", postCode: " MAP_WIDTH 100", options: ["const", "define", "set", "var"], answer: "define", explanation: "매크로 상수는 #define으로 정의합니다." },
-                { context: "Step 3: 플레이어 구조체 정의", preCode: "", gap: "struct", postCode: " Player {\n    int x, y;\n    int hp;\n};", options: ["class", "struct", "type", "rec"], answer: "struct", explanation: "데이터를 묶을 때는 구조체(struct)를 사용합니다." },
-                { context: "Step 4: 게임 맵 메모리 할당", preCode: "int *map = (int*)", gap: "malloc", postCode: "(sizeof(int) * MAP_WIDTH);", options: ["new", "alloc", "malloc", "mem"], answer: "malloc", explanation: "동적 메모리 할당은 malloc 함수를 사용합니다." },
-                { context: "Step 5: 메모리 할당 실패 확인", preCode: "if (map == ", gap: "NULL", postCode: ") {\n    return -1;\n}", options: ["nil", "null", "NULL", "0"], answer: "NULL", explanation: "포인터가 비었음을 확인할 때는 NULL 매크로를 씁니다." },
-                { context: "Step 6: 플레이어 이름 복사", preCode: "char name[20];\n", gap: "strcpy", postCode: "(name, \"Hero\");", options: ["strcopy", "cpystr", "strcpy", "move"], answer: "strcpy", explanation: "문자열 대입(복사)은 strcpy 함수를 사용합니다." },
-                { context: "Step 7: 구조체 크기 확인", preCode: "int p_size = ", gap: "sizeof", postCode: "(struct Player);", options: ["len", "size", "sizeof", "width"], answer: "sizeof", explanation: "타입의 바이트 크기는 sizeof로 구합니다." },
-                { context: "Step 8: 포인터로 초기값 설정", preCode: "struct Player p;\nstruct Player *ptr = ", gap: "&", postCode: "p;\nptr->hp = 100;", options: ["*", "&", "@", "#"], answer: "&", explanation: "변수의 주소값은 & 연산자로 가져옵니다." },
-                { context: "Step 9: 메인 게임 루프 시작", preCode: "int running = 1;\n", gap: "while", postCode: "(running) {\n    update_game();\n}", options: ["for", "loop", "until", "while"], answer: "while", explanation: "조건이 참인 동안 반복하려면 while문을 씁니다." },
-                { context: "Step 10: 사용자 입력 처리 (포인터)", preCode: "int input;\nscanf(\"%d\", ", gap: "&", postCode: "input);", options: ["*", "&", "$", "ptr"], answer: "&", explanation: "scanf에는 변수의 주소(&)를 넘겨주어야 합니다." },
-                { context: "Step 11: 입력에 따른 분기", preCode: "switch(input) {\n    ", gap: "case", postCode: " 1: move_up(); break;\n}", options: ["when", "if", "case", "option"], answer: "case", explanation: "switch문 내부의 조건 분기는 case를 사용합니다." },
-                { context: "Step 12: 데미지 처리 (역참조)", preCode: "void hit(int *hp) {\n    ", gap: "*", postCode: "hp -= 10;\n}", options: ["&", "*", "->", "."], answer: "*", explanation: "포인터가 가리키는 값을 수정하려면 * 연산자를 씁니다." },
-                { context: "Step 13: 명령어 문자열 비교", preCode: "if (", gap: "strcmp", postCode: "(cmd, \"quit\") == 0) running = 0;", options: ["strequal", "strcmp", "compare", "eq"], answer: "strcmp", explanation: "두 문자열이 같은지 비교할 때는 strcmp를 사용합니다." },
-                { context: "Step 14: 상태 정보 출력", preCode: "", gap: "printf", postCode: "(\"HP: %d\\n\", p.hp);", options: ["print", "cout", "printf", "log"], answer: "printf", explanation: "형식화된 출력은 printf를 사용합니다." },
-                { context: "Step 15: 종료 및 값 반환", preCode: "free(map);\n", gap: "return", postCode: " 0;", options: ["exit", "back", "return", "out"], answer: "return", explanation: "함수를 종료하고 값을 반환할 때는 return을 씁니다." }
+            'C': [
+                {
+                    id: 'c_rpg',
+                    type: 'rpg_grid',
+                    title: 'RPG 게임 엔진',
+                    questions: [
+                        { context: "Step 1: 표준 입출력 헤더 포함", preCode: "#include <", gap: "stdio.h", postCode: ">", options: ["iostream", "stdio.h", "std.h", "io.h"], answer: "stdio.h", explanation: "C언어의 표준 입출력 함수들은 stdio.h에 있습니다." },
+                        { context: "Step 2: 상수 정의 (맵 크기)", preCode: "#", gap: "define", postCode: " MAP_WIDTH 100", options: ["const", "define", "set", "var"], answer: "define", explanation: "매크로 상수는 #define으로 정의합니다." },
+                        { context: "Step 3: 플레이어 구조체 정의", preCode: "", gap: "struct", postCode: " Player {\n    int x, y;\n    int hp;\n};", options: ["class", "struct", "type", "rec"], answer: "struct", explanation: "데이터를 묶을 때는 구조체(struct)를 사용합니다." },
+                        { context: "Step 4: 게임 맵 메모리 할당", preCode: "int *map = (int*)", gap: "malloc", postCode: "(sizeof(int) * MAP_WIDTH);", options: ["new", "alloc", "malloc", "mem"], answer: "malloc", explanation: "동적 메모리 할당은 malloc 함수를 사용합니다." },
+                        { context: "Step 5: 메모리 할당 실패 확인", preCode: "if (map == ", gap: "NULL", postCode: ") {\n    return -1;\n}", options: ["nil", "null", "NULL", "0"], answer: "NULL", explanation: "포인터가 비었음을 확인할 때는 NULL 매크로를 씁니다." },
+                        { context: "Step 6: 플레이어 이름 복사", preCode: "char name[20];\n", gap: "strcpy", postCode: "(name, \"Hero\");", options: ["strcopy", "cpystr", "strcpy", "move"], answer: "strcpy", explanation: "문자열 대입(복사)은 strcpy 함수를 사용합니다." },
+                        { context: "Step 7: 구조체 크기 확인", preCode: "int p_size = ", gap: "sizeof", postCode: "(struct Player);", options: ["len", "size", "sizeof", "width"], answer: "sizeof", explanation: "타입의 바이트 크기는 sizeof로 구합니다." },
+                        { context: "Step 8: 포인터로 초기값 설정", preCode: "struct Player p;\nstruct Player *ptr = ", gap: "&", postCode: "p;\nptr->hp = 100;", options: ["*", "&", "@", "#"], answer: "&", explanation: "변수의 주소값은 & 연산자로 가져옵니다." },
+                        { context: "Step 9: 메인 게임 루프 시작", preCode: "int running = 1;\n", gap: "while", postCode: "(running) {\n    update_game();\n}", options: ["for", "loop", "until", "while"], answer: "while", explanation: "조건이 참인 동안 반복하려면 while문을 씁니다." },
+                        { context: "Step 10: 사용자 입력 처리 (포인터)", preCode: "int input;\nscanf(\"%d\", ", gap: "&", postCode: "input);", options: ["*", "&", "$", "ptr"], answer: "&", explanation: "scanf에는 변수의 주소(&)를 넘겨주어야 합니다." },
+                        { context: "Step 11: 입력에 따른 분기", preCode: "switch(input) {\n    ", gap: "case", postCode: " 1: move_up(); break;\n}", options: ["when", "if", "case", "option"], answer: "case", explanation: "switch문 내부의 조건 분기는 case를 사용합니다." },
+                        { context: "Step 12: 데미지 처리 (역참조)", preCode: "void hit(int *hp) {\n    ", gap: "*", postCode: "hp -= 10;\n}", options: ["&", "*", "->", "."], answer: "*", explanation: "포인터가 가리키는 값을 수정하려면 * 연산자를 씁니다." },
+                        { context: "Step 13: 명령어 문자열 비교", preCode: "if (", gap: "strcmp", postCode: "(cmd, \"quit\") == 0) running = 0;", options: ["strequal", "strcmp", "compare", "eq"], answer: "strcmp", explanation: "두 문자열이 같은지 비교할 때는 strcmp를 사용합니다." },
+                        { context: "Step 14: 상태 정보 출력", preCode: "", gap: "printf", postCode: "(\"HP: %d\\n\", p.hp);", options: ["print", "cout", "printf", "log"], answer: "printf", explanation: "형식화된 출력은 printf를 사용합니다." },
+                        { context: "Step 15: 종료 및 값 반환", preCode: "free(map);\n", gap: "return", postCode: " 0;", options: ["exit", "back", "return", "out"], answer: "return", explanation: "함수를 종료하고 값을 반환할 때는 return을 씁니다." }
+                    ]
+                },
+                {
+                    id: 'c_traffic',
+                    type: 'traffic_light',
+                    title: '신호등 제어 시스템',
+                    questions: [
+                        { context: "Step 1: 비트 연산 헤더", preCode: "#include <", gap: "stdint.h", postCode: ">", options: ["bit.h", "inttypes.h", "stdint.h", "std.h"], answer: "stdint.h", explanation: "정해진 비트 수의 정수형을 쓰려면 stdint.h가 필요합니다." },
+                        { context: "Step 2: 레지스터 주소 정의", preCode: "#define REG_LED ", gap: "(*volatile uint8_t *)", postCode: "0x4000", options: ["(int*)", "(volatile*)", "(*volatile uint8_t *)", "&int"], answer: "(*volatile uint8_t *)", explanation: "하드웨어 레지스터 접근 시 volatile 포인터 캐스팅을 합니다." },
+                        { context: "Step 3: 비트 마스크 정의", preCode: "#define RED_LED ", gap: "(1 << 0)", postCode: "", options: ["1", "(1 << 0)", "0x00", "bit(0)"], answer: "(1 << 0)", explanation: "0번 비트를 켜는 마스크는 1을 0번 시프트합니다." },
+                        { context: "Step 4: 상태 열거형", preCode: "typedef ", gap: "enum", postCode: " { RED, YELLOW, GREEN } State;", options: ["struct", "enum", "union", "class"], answer: "enum", explanation: "연관된 상수들의 집합은 enum으로 정의합니다." },
+                        { context: "Step 5: 메인 함수 시작", preCode: "int main(", gap: "void", postCode: ") {", options: ["null", "void", "empty", "args"], answer: "void", explanation: "인자가 없는 메인 함수는 void를 명시합니다." },
+                        { context: "Step 6: LED 켜기 (비트 OR)", preCode: "*REG_LED ", gap: "|=", postCode: " RED_LED;", options: ["=", "+=", "|=", "&="], answer: "|=", explanation: "특정 비트를 켤 때는 OR 연산(|=)을 사용합니다." },
+                        { context: "Step 7: LED 끄기 (비트 AND NOT)", preCode: "*REG_LED ", gap: "&=", postCode: " ~YELLOW_LED;", options: ["^=", "&=", "-=", "|="], answer: "&=", explanation: "특정 비트를 끌 때는 AND NOT 연산(&= ~)을 사용합니다." },
+                        { context: "Step 8: 상태 토글 (XOR)", preCode: "*REG_LED ", gap: "^=", postCode: " GREEN_LED;", options: ["|=", "^=", "&=", "~="], answer: "^=", explanation: "상태를 반전(토글)시킬 때는 XOR 연산(^=)을 씁니다." },
+                        { context: "Step 9: 딜레이 루프 (volatile)", preCode: "for (", gap: "volatile", postCode: " int i=0; i<1000; i++);", options: ["static", "const", "volatile", "register"], answer: "volatile", explanation: "최적화로 루프가 삭제되지 않게 volatile을 씁니다." },
+                        { context: "Step 10: 함수 포인터 타입", preCode: "typedef void ", gap: "(*Handler)", postCode: "(void);", options: ["*Handler", "Handler*", "(*Handler)", "&Handler"], answer: "(*Handler)", explanation: "함수 포인터 타입 정의 문법입니다." },
+                        { context: "Step 11: 인터럽트 핸들러 등록", preCode: "Handler h = ", gap: "&", postCode: "TimerISR;", options: ["*", "&", "@", "->"], answer: "&", explanation: "함수의 주소를 가져올 때 & 연산자를 씁니다." },
+                        { context: "Step 12: 조건문 (비트 검사)", preCode: "if (*REG_LED ", gap: "&", postCode: " RED_LED)", options: ["&&", "&", "==", "|"], answer: "&", explanation: "특정 비트가 켜져 있는지 확인하려면 AND 연산(&)을 합니다." },
+                        { context: "Step 13: 매크로 함수", preCode: "#define SET_BIT(p,n) ((p) |= (1 << (", gap: "n", postCode: ")))", options: ["i", "x", "n", "bit"], answer: "n", explanation: "매크로 인자 n을 사용하여 시프트합니다." },
+                        { context: "Step 14: 무한 루프", preCode: "", gap: "for(;;)", postCode: " { control_traffic(); }", options: ["while(0)", "for(;;)", "loop", "repeat"], answer: "for(;;)", explanation: "C언어에서 관용적인 무한 루프 표현입니다." },
+                        { context: "Step 15: 시스템 종료 (도달 불가)", preCode: "", gap: "return", postCode: " 0;", options: ["exit", "end", "return", "break"], answer: "return", explanation: "함수 종료 시 return을 사용합니다." }
+                    ]
+                },
+                {
+                    id: 'c_memory',
+                    type: 'memory_map',
+                    title: '메모리 관리자 (Kernel)',
+                    questions: [
+                        { context: "Step 1: void 포인터 사용", preCode: "void* my_alloc(size_t ", gap: "size", postCode: ");", options: ["len", "size", "width", "byte"], answer: "size", explanation: "메모리 크기를 받을 때는 보통 size 변수명을 씁니다." },
+                        { context: "Step 2: 힙 시작 주소", preCode: "static uint8_t ", gap: "heap", postCode: "[1024];", options: ["stack", "heap", "mem", "pool"], answer: "heap", explanation: "정적 배열을 힙 공간처럼 시뮬레이션 합니다." },
+                        { context: "Step 3: 형변환 (Casting)", preCode: "Header *h = (Header*)", gap: "ptr", postCode: ";", options: ["&ptr", "ptr", "*ptr", "mem"], answer: "ptr", explanation: "void 포인터를 구체적인 타입으로 캐스팅합니다." },
+                        { context: "Step 4: 포인터 연산", preCode: "void *next = (char*)ptr + ", gap: "size", postCode: ";", options: ["1", "size", "4", "8"], answer: "size", explanation: "바이트 단위 이동을 위해 char*로 변환 후 더합니다." },
+                        { context: "Step 5: 구조체 멤버 접근", preCode: "h", gap: "->", postCode: "is_free = 0;", options: [".", "->", "::", ":"], answer: "->", explanation: "포인터로 구조체 멤버 접근 시 화살표 연산자를 씁니다." },
+                        { context: "Step 6: 메모리 초기화 (memset)", preCode: "", gap: "memset", postCode: "(ptr, 0, size);", options: ["bzero", "memcpy", "memset", "clear"], answer: "memset", explanation: "메모리 블록을 특정 값으로 채울 때 memset을 씁니다." },
+                        { context: "Step 7: 메모리 복사 (memcpy)", preCode: "", gap: "memcpy", postCode: "(dest, src, n);", options: ["strcpy", "move", "memcpy", "copy"], answer: "memcpy", explanation: "메모리 블록 복사는 memcpy를 사용합니다." },
+                        { context: "Step 8: 더블 포인터", preCode: "void update_ref(int ", gap: "**", postCode: "handle);", options: ["*", "**", "&", "&&"], answer: "**", explanation: "포인터의 값을 바꾸려면 더블 포인터를 씁니다." },
+                        { context: "Step 9: NULL 체크 매크로", preCode: "#define ASSERT(x) if(!(x)) ", gap: "abort()", postCode: "", options: ["exit()", "return", "abort()", "stop()"], answer: "abort()", explanation: "치명적 오류 발생 시 abort()로 강제 종료합니다." },
+                        { context: "Step 10: 바이트 정렬 (Alignment)", preCode: "size = (size + 3) & ", gap: "~3", postCode: ";", options: ["~3", "0xFF", "|3", "^3"], answer: "~3", explanation: "4바이트 단위 정렬을 위한 비트 연산 트릭입니다." },
+                        { context: "Step 11: 유니온 사용", preCode: "union { int i; float f; } ", gap: "u", postCode: ";", options: ["data", "u", "x", "var"], answer: "u", explanation: "메모리를 공유하는 공용체(union) 변수 선언입니다." },
+                        { context: "Step 12: 비트 필드 구조체", preCode: "struct { unsigned int flag:", gap: "1", postCode: "; };", options: ["1", "int", "bool", "0"], answer: "1", explanation: "1비트 크기의 필드를 지정합니다." },
+                        { context: "Step 13: 메모리 해제 시뮬레이션", preCode: "void my_free(void *ptr) { h->is_free = ", gap: "1", postCode: "; }", options: ["0", "1", "true", "null"], answer: "1", explanation: "해제된 상태를 플래그(1)로 표시합니다." },
+                        { context: "Step 14: 오버플로우 방지", preCode: "if (current + size > ", gap: "END", postCode: ") return NULL;", options: ["START", "END", "MAX", "LIMIT"], answer: "END", explanation: "메모리 끝 범위를 넘는지 확인합니다." },
+                        { context: "Step 15: 디버그 출력", preCode: "printf(\"Alloc: %p\\n\", ", gap: "ptr", postCode: ");", options: ["&ptr", "*ptr", "ptr", "mem"], answer: "ptr", explanation: "포인터 주소 출력 포맷은 %p이고 값을 넘깁니다." }
+                    ]
+                }
             ],
-            [LANGUAGES.CSHARP]: [
-                { context: "Step 1: 시스템 라이브러리 사용", preCode: "", gap: "using", postCode: " System;\nusing System.Windows.Forms;", options: ["import", "include", "using", "from"], answer: "using", explanation: "네임스페이스를 가져올 때는 using을 사용합니다." },
-                { context: "Step 2: 네임스페이스 선언", preCode: "", gap: "namespace", postCode: " MyApp {\n    // ...\n}", options: ["package", "module", "namespace", "region"], answer: "namespace", explanation: "코드를 그룹화하는 네임스페이스를 선언합니다." },
-                { context: "Step 3: 폼 클래스 상속", preCode: "public class LoginForm ", gap: ":", postCode: " Form {\n    // Form Logic\n}", options: ["extends", ":", "implements", "->"], answer: ":", explanation: "C#에서 상속은 콜론(:)을 사용합니다." },
-                { context: "Step 4: 상수 타이틀 정의", preCode: "    ", gap: "const", postCode: " string TITLE = \"Login App\";", options: ["final", "static", "const", "readonly"], answer: "const", explanation: "변하지 않는 값은 const로 선언합니다." },
-                { context: "Step 5: 연결 상태 열거형 정의", preCode: "    public ", gap: "enum", postCode: " State { Disconnected, Connected }", options: ["type", "enum", "list", "option"], answer: "enum", explanation: "상태 목록을 정의할 때는 enum을 사용합니다." },
-                { context: "Step 6: 유저명 프로퍼티 (Getter/Setter)", preCode: "    public string Username { get; ", gap: "set", postCode: "; }", options: ["put", "set", "let", "init"], answer: "set", explanation: "프로퍼티의 값을 설정하는 접근자는 set입니다." },
-                { context: "Step 7: 인증 인터페이스 정의", preCode: "    public ", gap: "interface", postCode: " IAuthenticator {\n        bool Validate(string u);\n    }", options: ["class", "struct", "interface", "protocol"], answer: "interface", explanation: "기능의 명세는 interface로 정의합니다." },
-                { context: "Step 8: 생성자 및 부모 초기화", preCode: "    public LoginForm() ", gap: ":", postCode: " base() {\n        InitializeComponent();\n    }", options: ["super", "parent", "base", "root"], answer: ":", explanation: "생성자에서 부모 생성자를 호출할 때는 : base()를 씁니다." },
-                { context: "Step 9: UI 버튼 객체 생성", preCode: "    Button btn = ", gap: "new", postCode: " Button();", options: ["alloc", "create", "new", "make"], answer: "new", explanation: "객체(인스턴스)를 생성할 때는 new 키워드를 씁니다." },
-                { context: "Step 10: 비동기 로그인 메서드", preCode: "    public ", gap: "async", postCode: " void OnLoginClick(object s, EventArgs e)", options: ["await", "async", "sync", "void"], answer: "async", explanation: "비동기 메서드를 선언할 때는 async 키워드를 붙입니다." },
-                { context: "Step 11: 타입 추론 변수 선언", preCode: "        ", gap: "var", postCode: " db = new DatabaseConnection();", options: ["let", "auto", "var", "dim"], answer: "var", explanation: "우변에서 타입을 알 수 있을 때 var를 사용합니다." },
-                { context: "Step 12: 환영 메시지 (문자열 보간)", preCode: "        string msg = ", gap: "$", postCode: "\"Welcome, {Username}!\";", options: ["@", "$", "#", "%"], answer: "$", explanation: "문자열 내 변수를 쓰려면 $를 앞에 붙입니다." },
-                { context: "Step 13: 널 조건부 연산자", preCode: "        int? len = Username", gap: "?.", postCode: "Length;", options: [".", "?.", "!!", "??"], answer: "?.", explanation: "객체가 null일 수 있을 때 안전하게 접근하려면 ?.를 씁니다." },
-                { context: "Step 14: 데이터 필터링 (LINQ)", preCode: "        var admins = users.", gap: "Where", postCode: "(u => u.IsAdmin);", options: ["Filter", "Select", "Where", "Find"], answer: "Where", explanation: "조건에 맞는 요소를 찾을 때는 LINQ의 Where를 씁니다." },
-                { context: "Step 15: 디버그 로그 출력", preCode: "        ", gap: "Console.WriteLine", postCode: "(\"Login Sequence Complete\");", options: ["print", "Console.WriteLine", "Debug.Log", "System.out"], answer: "Console.WriteLine", explanation: "콘솔에 내용을 출력할 때는 Console.WriteLine을 사용합니다." }
+            'C#': [
+                {
+                    id: 'cs_login',
+                    type: 'login_form',
+                    title: '로그인 시스템',
+                    questions: [
+                        { context: "Step 1: 시스템 라이브러리 사용", preCode: "", gap: "using", postCode: " System;\nusing System.Windows.Forms;", options: ["import", "include", "using", "from"], answer: "using", explanation: "네임스페이스를 가져올 때는 using을 사용합니다." },
+                        { context: "Step 2: 네임스페이스 선언", preCode: "", gap: "namespace", postCode: " MyApp {\n    // ...\n}", options: ["package", "module", "namespace", "region"], answer: "namespace", explanation: "코드를 그룹화하는 네임스페이스를 선언합니다." },
+                        { context: "Step 3: 폼 클래스 상속", preCode: "public class LoginForm ", gap: ":", postCode: " Form {\n    // Form Logic\n}", options: ["extends", ":", "implements", "->"], answer: ":", explanation: "C#에서 상속은 콜론(:)을 사용합니다." },
+                        { context: "Step 4: 상수 타이틀 정의", preCode: "    ", gap: "const", postCode: " string TITLE = \"Login App\";", options: ["final", "static", "const", "readonly"], answer: "const", explanation: "변하지 않는 값은 const로 선언합니다." },
+                        { context: "Step 5: 연결 상태 열거형 정의", preCode: "    public ", gap: "enum", postCode: " State { Disconnected, Connected }", options: ["type", "enum", "list", "option"], answer: "enum", explanation: "상태 목록을 정의할 때는 enum을 사용합니다." },
+                        { context: "Step 6: 유저명 프로퍼티 (Getter/Setter)", preCode: "    public string Username { get; ", gap: "set", postCode: "; }", options: ["put", "set", "let", "init"], answer: "set", explanation: "프로퍼티의 값을 설정하는 접근자는 set입니다." },
+                        { context: "Step 7: 인증 인터페이스 정의", preCode: "    public ", gap: "interface", postCode: " IAuthenticator {\n        bool Validate(string u);\n    }", options: ["class", "struct", "interface", "protocol"], answer: "interface", explanation: "기능의 명세는 interface로 정의합니다." },
+                        { context: "Step 8: 생성자 및 부모 초기화", preCode: "    public LoginForm() ", gap: ":", postCode: " base() {\n        InitializeComponent();\n    }", options: ["super", "parent", "base", "root"], answer: ":", explanation: "생성자에서 부모 생성자를 호출할 때는 : base()를 씁니다." },
+                        { context: "Step 9: UI 버튼 객체 생성", preCode: "    Button btn = ", gap: "new", postCode: " Button();", options: ["alloc", "create", "new", "make"], answer: "new", explanation: "객체(인스턴스)를 생성할 때는 new 키워드를 씁니다." },
+                        { context: "Step 10: 비동기 로그인 메서드", preCode: "    public ", gap: "async", postCode: " void OnLoginClick(object s, EventArgs e)", options: ["await", "async", "sync", "void"], answer: "async", explanation: "비동기 메서드를 선언할 때는 async 키워드를 붙입니다." },
+                        { context: "Step 11: 타입 추론 변수 선언", preCode: "        ", gap: "var", postCode: " db = new DatabaseConnection();", options: ["let", "auto", "var", "dim"], answer: "var", explanation: "우변에서 타입을 알 수 있을 때 var를 사용합니다." },
+                        { context: "Step 12: 환영 메시지 (문자열 보간)", preCode: "        string msg = ", gap: "$", postCode: "\"Welcome, {Username}!\";", options: ["@", "$", "#", "%"], answer: "$", explanation: "문자열 내 변수를 쓰려면 $를 앞에 붙입니다." },
+                        { context: "Step 13: 널 조건부 연산자", preCode: "        int? len = Username", gap: "?.", postCode: "Length;", options: [".", "?.", "!!", "??"], answer: "?.", explanation: "객체가 null일 수 있을 때 안전하게 접근하려면 ?.를 씁니다." },
+                        { context: "Step 14: 데이터 필터링 (LINQ)", preCode: "        var admins = users.", gap: "Where", postCode: "(u => u.IsAdmin);", options: ["Filter", "Select", "Where", "Find"], answer: "Where", explanation: "조건에 맞는 요소를 찾을 때는 LINQ의 Where를 씁니다." },
+                        { context: "Step 15: 디버그 로그 출력", preCode: "        ", gap: "Console.WriteLine", postCode: "(\"Login Sequence Complete\");", options: ["print", "Console.WriteLine", "Debug.Log", "System.out"], answer: "Console.WriteLine", explanation: "콘솔에 내용을 출력할 때는 Console.WriteLine을 사용합니다." }
+                    ]
+                },
+                {
+                    id: 'cs_shop',
+                    type: 'inventory_list',
+                    title: '쇼핑몰 재고 관리',
+                    questions: [
+                        { context: "Step 1: 제네릭 리스트 사용", preCode: "List<Product> items = ", gap: "new", postCode: " List<Product>();", options: ["alloc", "create", "new", "make"], answer: "new", explanation: "객체 생성은 new 키워드를 사용합니다." },
+                        { context: "Step 2: 클래스 정의", preCode: "public ", gap: "class", postCode: " Product { public int Id; }", options: ["struct", "class", "object", "type"], answer: "class", explanation: "참조 타입 정의는 class를 사용합니다." },
+                        { context: "Step 3: Decimal 타입 (화폐)", preCode: "    public ", gap: "decimal", postCode: " Price { get; set; }", options: ["float", "double", "decimal", "money"], answer: "decimal", explanation: "화폐 연산에는 정밀한 decimal 타입을 씁니다." },
+                        { context: "Step 4: 생성자 오버로딩", preCode: "    public Product(int id) ", gap: "{", postCode: " this.Id = id; }", options: ["{", "(", "[", ":"], answer: "{", explanation: "생성자 본문은 중괄호로 감쌉니다." },
+                        { context: "Step 5: 리스트에 추가", preCode: "items.", gap: "Add", postCode: "(new Product(1));", options: ["Push", "Append", "Add", "Insert"], answer: "Add", explanation: "C# List에 요소를 넣을 때는 Add 메서드를 씁니다." },
+                        { context: "Step 6: Foreach 반복문", preCode: "", gap: "foreach", postCode: " (var item in items) { ... }", options: ["for", "foreach", "loop", "in"], answer: "foreach", explanation: "컬렉션 순회는 foreach가 편리합니다." },
+                        { context: "Step 7: 람다식 검색 (Find)", preCode: "var p = items.Find(x ", gap: "=>", postCode: " x.Id == 1);", options: ["->", "=>", ":", "."], answer: "=>", explanation: "람다 연산자는 => 입니다." },
+                        { context: "Step 8: 예외 던지기", preCode: "if (p == null) throw ", gap: "new", postCode: " Exception(\"Not Found\");", options: ["create", "make", "new", "error"], answer: "new", explanation: "예외 객체도 new로 생성하여 던집니다." },
+                        { context: "Step 9: 문자열 포맷팅", preCode: "string s = string.", gap: "Format", postCode: "(\"Price: {0:C}\", p.Price);", options: ["Print", "Format", "Join", "Concat"], answer: "Format", explanation: "string.Format을 사용하여 문자열을 구성합니다." },
+                        { context: "Step 10: 딕셔너리 사용", preCode: "Dictionary<int, string> names = ", gap: "new", postCode: "();", options: ["new", "create", "alloc", "map"], answer: "new", explanation: "키-값 쌍 저장소는 Dictionary입니다." },
+                        { context: "Step 11: 널 병합 연산자", preCode: "string n = name ", gap: "??", postCode: " \"Unknown\";", options: ["?:", "??", "||", "or"], answer: "??", explanation: "null일 경우 대체값을 지정하는 ?? 연산자입니다." },
+                        { context: "Step 12: 확장 메서드 정의", preCode: "public static void Print( ", gap: "this", postCode: " Product p )", options: ["ref", "out", "this", "ext"], answer: "this", explanation: "확장 메서드는 첫 인자에 this 키워드를 붙입니다." },
+                        { context: "Step 13: LINQ Select", preCode: "var prices = items.", gap: "Select", postCode: "(i => i.Price);", options: ["Map", "Select", "Choose", "Pick"], answer: "Select", explanation: "데이터 변환(매핑)은 LINQ Select를 씁니다." },
+                        { context: "Step 14: 익명 타입", preCode: "var info = new ", gap: "{", postCode: " Name=\"A\", Cost=10 };", options: ["(", "[", "{", "<"], answer: "{", explanation: "익명 타입 초기화는 중괄호를 사용합니다." },
+                        { context: "Step 15: 콘솔 키 입력 대기", preCode: "Console.", gap: "ReadKey", postCode: "();", options: ["Read", "ReadLine", "ReadKey", "Wait"], answer: "ReadKey", explanation: "키 입력을 기다릴 때 ReadKey를 씁니다." }
+                    ]
+                },
+                {
+                    id: 'cs_unity',
+                    type: 'unity_box',
+                    title: 'Unity 3D 스크립트',
+                    questions: [
+                        { context: "Step 1: 모노비헤이비어 상속", preCode: "public class Player : ", gap: "MonoBehaviour", postCode: "", options: ["Behaviour", "MonoBehaviour", "UnityObject", "Actor"], answer: "MonoBehaviour", explanation: "유니티 컴포넌트는 MonoBehaviour를 상속받습니다." },
+                        { context: "Step 2: 초기화 메서드", preCode: "void ", gap: "Start", postCode: "() { }", options: ["Init", "Begin", "Start", "OnLoad"], answer: "Start", explanation: "객체 활성화 시 최초 1회 실행되는 Start 메서드입니다." },
+                        { context: "Step 3: 프레임 갱신 메서드", preCode: "void ", gap: "Update", postCode: "() { }", options: ["Loop", "Update", "Tick", "Draw"], answer: "Update", explanation: "매 프레임마다 호출되는 Update 메서드입니다." },
+                        { context: "Step 4: 벡터 이동", preCode: "transform.Translate(Vector3.", gap: "forward", postCode: " * speed);", options: ["front", "forward", "up", "one"], answer: "forward", explanation: "앞쪽 방향 벡터는 Vector3.forward입니다." },
+                        { context: "Step 5: 델타 타임 사용", preCode: "float move = speed * Time.", gap: "deltaTime", postCode: ";", options: ["time", "deltaTime", "fixedTime", "delta"], answer: "deltaTime", explanation: "프레임 간 시간 차이를 곱해 이동 속도를 일정하게 합니다." },
+                        { context: "Step 6: 키 입력 확인", preCode: "if (Input.", gap: "GetKeyDown", postCode: "(KeyCode.Space))", options: ["GetKey", "GetKeyDown", "OnKey", "Press"], answer: "GetKeyDown", explanation: "키를 누르는 순간을 감지합니다." },
+                        { context: "Step 7: 컴포넌트 가져오기", preCode: "Rigidbody rb = ", gap: "GetComponent", postCode: "<Rigidbody>();", options: ["Get", "Find", "GetComponent", "Fetch"], answer: "GetComponent", explanation: "같은 객체의 다른 컴포넌트를 가져옵니다." },
+                        { context: "Step 8: 물리 힘 가하기", preCode: "rb.", gap: "AddForce", postCode: "(Vector3.up * 10);", options: ["Push", "AddForce", "Move", "Velocity"], answer: "AddForce", explanation: "리지드바디에 힘을 가해 움직입니다." },
+                        { context: "Step 9: 직렬화 필드 (에디터 노출)", preCode: "[", gap: "SerializeField", postCode: "]\nprivate int health;", options: ["Public", "Edit", "SerializeField", "Show"], answer: "SerializeField", explanation: "private 변수를 에디터 창에 노출시킵니다." },
+                        { context: "Step 10: 충돌 감지", preCode: "void ", gap: "OnCollisionEnter", postCode: "(Collision col)", options: ["OnHit", "OnCollisionEnter", "Collide", "Touch"], answer: "OnCollisionEnter", explanation: "물리적 충돌이 시작될 때 호출됩니다." },
+                        { context: "Step 11: 게임 오브젝트 파괴", preCode: "", gap: "Destroy", postCode: "(gameObject);", options: ["Delete", "Remove", "Destroy", "Kill"], answer: "Destroy", explanation: "오브젝트를 씬에서 제거할 때 Destroy를 씁니다." },
+                        { context: "Step 12: 코루틴 시작", preCode: "", gap: "StartCoroutine", postCode: "(Wait());", options: ["Run", "StartCoroutine", "Async", "Await"], answer: "StartCoroutine", explanation: "비동기 작업을 위해 코루틴을 시작합니다." },
+                        { context: "Step 13: 코루틴 대기 (Yield)", preCode: "yield return new ", gap: "WaitForSeconds", postCode: "(1f);", options: ["Wait", "Sleep", "WaitForSeconds", "Delay"], answer: "WaitForSeconds", explanation: "지정된 시간만큼 대기합니다." },
+                        { context: "Step 14: 씬 로드", preCode: "SceneManager.", gap: "LoadScene", postCode: "(\"Level2\");", options: ["GoTo", "LoadScene", "Open", "Change"], answer: "LoadScene", explanation: "다른 씬(레벨)으로 전환합니다." },
+                        { context: "Step 15: 로그 출력", preCode: "Debug.", gap: "Log", postCode: "(\"Game Over\");", options: ["Print", "Log", "Write", "Show"], answer: "Log", explanation: "유니티 콘솔에 메시지를 띄웁니다." }
+                    ]
+                }
             ],
-            [LANGUAGES.CPP]: [
-                { context: "Step 1: 입출력 스트림 포함", preCode: "#include <", gap: "iostream", postCode: ">", options: ["stdio.h", "iostream", "string", "vector"], answer: "iostream", explanation: "C++ 입출력은 iostream 헤더를 사용합니다." },
-                { context: "Step 2: 표준 네임스페이스 사용", preCode: "using namespace ", gap: "std", postCode: ";", options: ["cpp", "std", "stl", "core"], answer: "std", explanation: "표준 라이브러리는 std 네임스페이스 안에 있습니다." },
-                { context: "Step 3: 좌표 템플릿 정의 (제네릭)", preCode: "", gap: "template", postCode: " <typename T>\nstruct Vec2 { T x, y; };", options: ["generic", "template", "class", "meta"], answer: "template", explanation: "다양한 타입에 대응하는 구조체는 template으로 만듭니다." },
-                { context: "Step 4: 게임 엔티티 클래스", preCode: "class Entity {\npublic:\n    ", gap: "virtual", postCode: " void Update() = 0;", options: ["static", "virtual", "inline", "friend"], answer: "virtual", explanation: "자식 클래스에서 오버라이드할 함수는 virtual로 선언합니다." },
-                { context: "Step 5: 플레이어 상속", preCode: "class Player : ", gap: "public", postCode: " Entity {\n    // ...\n};", options: ["extends", "public", "virtual", "super"], answer: "public", explanation: "일반적인 상속 접근 지정자는 public입니다." },
-                { context: "Step 6: 정적 멤버 (적 카운트)", preCode: "    ", gap: "static", postCode: " int enemyCount;", options: ["const", "global", "static", "shared"], answer: "static", explanation: "모든 인스턴스가 공유하는 변수는 static입니다." },
-                { context: "Step 7: 엔티티 목록 (벡터)", preCode: "#include <vector>\n", gap: "vector", postCode: "<Entity*> entities;", options: ["list", "array", "vector", "deque"], answer: "vector", explanation: "크기가 변하는 배열은 std::vector를 사용합니다." },
-                { context: "Step 8: 스마트 포인터 사용", preCode: "#include <memory>\nstd::", gap: "unique_ptr", postCode: "<Player> p = std::make_unique<Player>();", options: ["auto_ptr", "unique_ptr", "smart_ptr", "weak_ptr"], answer: "unique_ptr", explanation: "자동으로 메모리를 해제해주는 스마트 포인터입니다." },
-                { context: "Step 9: 자동 타입 추론 반복", preCode: "for (", gap: "auto", postCode: " e : entities) {\n    e->Update();\n}", options: ["var", "let", "auto", "int"], answer: "auto", explanation: "타입을 컴파일러가 알아서 추론하게 하려면 auto를 씁니다." },
-                { context: "Step 10: 범위 기반 for문", preCode: "for (int id ", gap: ":", postCode: " activeIds) {\n    // process\n}", options: ["in", ":", "of", "from"], answer: ":", explanation: "컨테이너의 모든 요소를 순회할 때 콜론(:)을 씁니다." },
-                { context: "Step 11: 참조자에 의한 전달", preCode: "void Move(Vec2<int>", gap: "&", postCode: " pos) {\n    this->pos = pos;\n}", options: ["*", "&", "ref", "%"], answer: "&", explanation: "복사 비용을 줄이기 위해 참조자(&)를 사용합니다." },
-                { context: "Step 12: 멤버 접근 화살표", preCode: "Entity* e = new Player();\ne", gap: "->", postCode: "Update();", options: [".", "->", "::", ":"], answer: "->", explanation: "포인터로 객체 멤버에 접근할 때는 -> 연산자를 씁니다." },
-                { context: "Step 13: 사용자 입력 받기", preCode: "char key;\n", gap: "cin", postCode: " >> key;", options: ["cout", "scan", "cin", "get"], answer: "cin", explanation: "C++ 표준 입력 스트림은 cin입니다." },
-                { context: "Step 14: 화면 출력", preCode: "", gap: "cout", postCode: " << \"Game Over\" << endl;", options: ["cin", "print", "cout", "out"], answer: "cout", explanation: "C++ 표준 출력 스트림은 cout입니다." },
-                { context: "Step 15: 소멸자 정의 (메모리 해제)", preCode: "    ", gap: "~", postCode: "Player() {\n        cout << \"Destroyed\";\n    }", options: ["-", "!", "~", "#"], answer: "~", explanation: "객체가 파괴될 때 호출되는 소멸자는 ~로 시작합니다." }
+            'C++': [
+                {
+                    id: 'cpp_engine',
+                    type: 'rpg_grid', // Reusing grid but styled differently? Or separate. Let's use grid for simplicity but maybe different logic.
+                    title: '게임 엔진 (Renderer)',
+                    questions: [
+                        { context: "Step 1: 입출력 스트림 포함", preCode: "#include <", gap: "iostream", postCode: ">", options: ["stdio.h", "iostream", "string", "vector"], answer: "iostream", explanation: "C++ 입출력은 iostream 헤더를 사용합니다." },
+                        { context: "Step 2: 표준 네임스페이스 사용", preCode: "using namespace ", gap: "std", postCode: ";", options: ["cpp", "std", "stl", "core"], answer: "std", explanation: "표준 라이브러리는 std 네임스페이스 안에 있습니다." },
+                        { context: "Step 3: 좌표 템플릿 정의 (제네릭)", preCode: "", gap: "template", postCode: " <typename T>\nstruct Vec2 { T x, y; };", options: ["generic", "template", "class", "meta"], answer: "template", explanation: "다양한 타입에 대응하는 구조체는 template으로 만듭니다." },
+                        { context: "Step 4: 게임 엔티티 클래스", preCode: "class Entity {\npublic:\n    ", gap: "virtual", postCode: " void Update() = 0;", options: ["static", "virtual", "inline", "friend"], answer: "virtual", explanation: "자식 클래스에서 오버라이드할 함수는 virtual로 선언합니다." },
+                        { context: "Step 5: 플레이어 상속", preCode: "class Player : ", gap: "public", postCode: " Entity {\n    // ...\n};", options: ["extends", "public", "virtual", "super"], answer: "public", explanation: "일반적인 상속 접근 지정자는 public입니다." },
+                        { context: "Step 6: 정적 멤버 (적 카운트)", preCode: "    ", gap: "static", postCode: " int enemyCount;", options: ["const", "global", "static", "shared"], answer: "static", explanation: "모든 인스턴스가 공유하는 변수는 static입니다." },
+                        { context: "Step 7: 엔티티 목록 (벡터)", preCode: "#include <vector>\n", gap: "vector", postCode: "<Entity*> entities;", options: ["list", "array", "vector", "deque"], answer: "vector", explanation: "크기가 변하는 배열은 std::vector를 사용합니다." },
+                        { context: "Step 8: 스마트 포인터 사용", preCode: "#include <memory>\nstd::", gap: "unique_ptr", postCode: "<Player> p = std::make_unique<Player>();", options: ["auto_ptr", "unique_ptr", "smart_ptr", "weak_ptr"], answer: "unique_ptr", explanation: "자동으로 메모리를 해제해주는 스마트 포인터입니다." },
+                        { context: "Step 9: 자동 타입 추론 반복", preCode: "for (", gap: "auto", postCode: " e : entities) {\n    e->Update();\n}", options: ["var", "let", "auto", "int"], answer: "auto", explanation: "타입을 컴파일러가 알아서 추론하게 하려면 auto를 씁니다." },
+                        { context: "Step 10: 범위 기반 for문", preCode: "for (int id ", gap: ":", postCode: " activeIds) {\n    // process\n}", options: ["in", ":", "of", "from"], answer: ":", explanation: "컨테이너의 모든 요소를 순회할 때 콜론(:)을 씁니다." },
+                        { context: "Step 11: 참조자에 의한 전달", preCode: "void Move(Vec2<int>", gap: "&", postCode: " pos) {\n    this->pos = pos;\n}", options: ["*", "&", "ref", "%"], answer: "&", explanation: "복사 비용을 줄이기 위해 참조자(&)를 사용합니다." },
+                        { context: "Step 12: 멤버 접근 화살표", preCode: "Entity* e = new Player();\ne", gap: "->", postCode: "Update();", options: [".", "->", "::", ":"], answer: "->", explanation: "포인터로 객체 멤버에 접근할 때는 -> 연산자를 씁니다." },
+                        { context: "Step 13: 사용자 입력 받기", preCode: "char key;\n", gap: "cin", postCode: " >> key;", options: ["cout", "scan", "cin", "get"], answer: "cin", explanation: "C++ 표준 입력 스트림은 cin입니다." },
+                        { context: "Step 14: 화면 출력", preCode: "", gap: "cout", postCode: " << \"Game Over\" << endl;", options: ["cin", "print", "cout", "out"], answer: "cout", explanation: "C++ 표준 출력 스트림은 cout입니다." },
+                        { context: "Step 15: 소멸자 정의 (메모리 해제)", preCode: "    ", gap: "~", postCode: "Player() {\n        cout << \"Destroyed\";\n    }", options: ["-", "!", "~", "#"], answer: "~", explanation: "객체가 파괴될 때 호출되는 소멸자는 ~로 시작합니다." }
+                    ]
+                },
+                {
+                    id: 'cpp_bank',
+                    type: 'bank_log',
+                    title: '은행 거래 시스템',
+                    questions: [
+                        { context: "Step 1: 맵 컨테이너 사용", preCode: "#include <map>\nstd::", gap: "map", postCode: "<string, int> accounts;", options: ["list", "map", "set", "vector"], answer: "map", explanation: "Key-Value 쌍을 저장할 때 map을 사용합니다." },
+                        { context: "Step 2: 예외 처리 (Try)", preCode: "", gap: "try", postCode: " {\n    process_transaction();\n}", options: ["try", "do", "test", "attempt"], answer: "try", explanation: "예외가 발생할 수 있는 코드를 try 블록에 넣습니다." },
+                        { context: "Step 3: 예외 던지기", preCode: "if (bal < amount) throw std::", gap: "runtime_error", postCode: "(\"No funds\");", options: ["error", "exception", "runtime_error", "fail"], answer: "runtime_error", explanation: "실행 중 오류는 runtime_error를 던집니다." },
+                        { context: "Step 4: 예외 잡기 (Catch)", preCode: "} ", gap: "catch", postCode: " (const std::exception& e) { ... }", options: ["except", "catch", "handle", "error"], answer: "catch", explanation: "던져진 예외를 받아서 처리하는 블록입니다." },
+                        { context: "Step 5: 상수 참조 전달", preCode: "void Login(const string", gap: "&", postCode: " name)", options: ["*", "&", "&&", "."], answer: "&", explanation: "복사를 피하고 원본을 보호하려면 const 참조(&)를 씁니다." },
+                        { context: "Step 6: 문자열 찾기", preCode: "if (accounts.", gap: "find", postCode: "(name) == accounts.end())", options: ["search", "has", "find", "get"], answer: "find", explanation: "맵에서 키를 찾을 때 find를 씁니다." },
+                        { context: "Step 7: 반복자 (Iterator)", preCode: "std::map<string, int>::", gap: "iterator", postCode: " it = accounts.begin();", options: ["ptr", "cursor", "iterator", "index"], answer: "iterator", explanation: "컨테이너를 순회하는 객체는 반복자입니다." },
+                        { context: "Step 8: 화살표로 페어 접근", preCode: "cout << it", gap: "->", postCode: "first << \": \" << it->second;", options: [".", "->", "::", "."], answer: "->", explanation: "반복자는 포인터처럼 동작하므로 ->를 씁니다." },
+                        { context: "Step 9: 클래스 생성자", preCode: "Account(int b) ", gap: ":", postCode: " balance(b) {}", options: ["=", ":", "{", "->"], answer: ":", explanation: "초기화 리스트는 콜론(:)으로 시작합니다." },
+                        { context: "Step 10: 소멸자 (가상함수)", preCode: "virtual ", gap: "~", postCode: "Account() {}", options: ["!", "-", "~", "#"], answer: "~", explanation: "상속 시 소멸자는 반드시 가상함수(virtual ~)여야 합니다." },
+                        { context: "Step 11: 동적 캐스트", preCode: "VIP* v = ", gap: "dynamic_cast", postCode: "<VIP*>(acc);", options: ["static_cast", "dynamic_cast", "cast", "convert"], answer: "dynamic_cast", explanation: "안전한 다운캐스팅에는 dynamic_cast를 씁니다." },
+                        { context: "Step 12: 네임스페이스 정의", preCode: "", gap: "namespace", postCode: " BankSystem { ... }", options: ["package", "module", "namespace", "class"], answer: "namespace", explanation: "이름 충돌 방지를 위해 네임스페이스를 씁니다." },
+                        { context: "Step 13: 친구 함수 (Friend)", preCode: "", gap: "friend", postCode: " void AdminFunc();", options: ["public", "friend", "static", "extern"], answer: "friend", explanation: "private 멤버에 접근 권한을 주는 friend 키워드입니다." },
+                        { context: "Step 14: 파일 출력 스트림", preCode: "std::", gap: "ofstream", postCode: " file(\"log.txt\");", options: ["ifstream", "ofstream", "fstream", "file"], answer: "ofstream", explanation: "파일 쓰기용 스트림은 ofstream입니다." },
+                        { context: "Step 15: 스트림 닫기", preCode: "file.", gap: "close", postCode: "();", options: ["end", "stop", "close", "flush"], answer: "close", explanation: "사용이 끝난 파일 스트림은 닫아야 합니다." }
+                    ]
+                },
+                {
+                    id: 'cpp_sort',
+                    type: 'sort_visual',
+                    title: '정렬 알고리즘 (Sort)',
+                    questions: [
+                        { context: "Step 1: 벡터 헤더", preCode: "#include <", gap: "vector", postCode: ">", options: ["list", "array", "vector", "collection"], answer: "vector", explanation: "동적 배열 벡터를 사용하기 위한 헤더입니다." },
+                        { context: "Step 2: 알고리즘 헤더", preCode: "#include <", gap: "algorithm", postCode: ">", options: ["math", "sort", "algorithm", "func"], answer: "algorithm", explanation: "sort 함수 등이 포함된 헤더입니다." },
+                        { context: "Step 3: 벡터 초기화", preCode: "vector<int> v = {3, 1, 4, 1, 5};\nv.", gap: "push_back", postCode: "(9);", options: ["add", "push", "push_back", "insert"], answer: "push_back", explanation: "벡터 뒤에 요소를 추가합니다." },
+                        { context: "Step 4: 오름차순 정렬", preCode: "std::", gap: "sort", postCode: "(v.begin(), v.end());", options: ["order", "sort", "arrange", "qsort"], answer: "sort", explanation: "표준 정렬 함수 sort를 사용합니다." },
+                        { context: "Step 5: 람다 비교 함수", preCode: "sort(v.begin(), v.end(), [](", gap: "int a, int b", postCode: ") { return a > b; });", options: ["a, b", "int a, int b", "x, y", "auto"], answer: "int a, int b", explanation: "비교 함수 인자를 정의합니다." },
+                        { context: "Step 6: 반복자 사용", preCode: "for (auto it = v.begin(); it != v.", gap: "end", postCode: "(); ++it)", options: ["last", "stop", "end", "finish"], answer: "end", explanation: "반복자의 끝을 나타내는 end()입니다." },
+                        { context: "Step 7: 요소 스왑", preCode: "std::", gap: "swap", postCode: "(v[0], v[1]);", options: ["change", "move", "swap", "switch"], answer: "swap", explanation: "두 변수의 값을 맞바꾸는 함수입니다." },
+                        { context: "Step 8: 벡터 크기", preCode: "int n = v.", gap: "size", postCode: "();", options: ["length", "count", "size", "len"], answer: "size", explanation: "요소의 개수는 size()로 반환합니다." },
+                        { context: "Step 9: 인덱스 접근", preCode: "int val = v.", gap: "at", postCode: "(2);", options: ["get", "at", "[2]", "value"], answer: "at", explanation: "범위 체크를 포함한 접근은 at() 함수를 씁니다." },
+                        { context: "Step 10: 역순 정렬 객체", preCode: "sort(v.begin(), v.end(), std::", gap: "greater", postCode: "<int>());", options: ["less", "greater", "desc", "asc"], answer: "greater", explanation: "내림차순 정렬 시 greater 함수 객체를 씁니다." },
+                        { context: "Step 11: 이진 탐색", preCode: "bool found = std::", gap: "binary_search", postCode: "(v.begin(), v.end(), 5);", options: ["find", "search", "binary_search", "scan"], answer: "binary_search", explanation: "정렬된 범위에서 빠르게 값을 찾습니다." },
+                        { context: "Step 12: 최대값 요소", preCode: "auto max_it = std::", gap: "max_element", postCode: "(v.begin(), v.end());", options: ["max", "maximum", "max_element", "top"], answer: "max_element", explanation: "가장 큰 요소를 가리키는 반복자를 반환합니다." },
+                        { context: "Step 13: 벡터 비우기", preCode: "v.", gap: "clear", postCode: "();", options: ["empty", "delete", "clear", "erase"], answer: "clear", explanation: "모든 요소를 제거합니다." },
+                        { context: "Step 14: 미리 공간 확보", preCode: "v.", gap: "reserve", postCode: "(100);", options: ["alloc", "reserve", "resize", "set"], answer: "reserve", explanation: "재할당을 막기 위해 메모리를 미리 확보합니다." },
+                        { context: "Step 15: 범위 기반 for (참조)", preCode: "for (auto", gap: "&", postCode: " x : v) x *= 2;", options: ["*", "&", "&&", "copy"], answer: "&", explanation: "값을 수정하려면 참조(&)로 순회해야 합니다." }
+                    ]
+                }
             ]
         };
 
@@ -152,15 +351,19 @@
             "npm install react-dom"
         ];
 
-        // --- DASHBOARD PREVIEW COMPONENT (VISUALS RESTORED) ---
-        const ProjectPreview = ({ language, progress, isInteractive }) => {
+        // --- DASHBOARD PREVIEW COMPONENT (DYNAMIC) ---
+        const ProjectPreview = ({ language, scenarioType, progress, isInteractive }) => {
             const [logs, setLogs] = useState([]);
             const logEndRef = useRef(null);
             
-            // Visual State
-            const [pyData, setPyData] = useState([40, 70, 50, 90]);
-            const [heroPos, setHeroPos] = useState({ x: 2, y: 3 });
-            const [loginState, setLoginState] = useState('form');
+            // Visual State for various dashboards
+            const [chartData, setChartData] = useState([40, 70, 50, 90]); // Python AI/Finance
+            const [heroPos, setHeroPos] = useState({ x: 2, y: 3 }); // C/C++ RPG
+            const [loginState, setLoginState] = useState('form'); // C# Login
+            const [trafficState, setTrafficState] = useState(0); // C Traffic (0:Red, 1:Yellow, 2:Green)
+            const [memBlocks, setMemBlocks] = useState(Array(16).fill(false)); // C Memory
+            const [sortData, setSortData] = useState([5, 2, 8, 1, 9, 3]); // C++ Sort
+            const [cubeRot, setCubeRot] = useState(0); // C# Unity
 
             useEffect(() => {
                 if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -170,12 +373,14 @@
             useEffect(() => {
                 const step = Math.floor(progress / (100/15)); 
                 if (step > 0) {
-                    let newLog = "";
-                    if (language === LANGUAGES.PYTHON) newLog = `> [Step ${step}] Executing cell: model.train()`;
-                    else if (language === LANGUAGES.C) newLog = `> [0x${(4000 + step*16).toString(16)}] ALLOCATING MEMORY... OK`;
-                    else if (language === LANGUAGES.CSHARP) newLog = `> [Debug] Building Form Component (${step}/15)`;
-                    else if (language === LANGUAGES.CPP) newLog = `> [EntitySystem] Linking Object ID: ${step}`;
+                    let newLog = `> [Step ${step}] Processing...`;
                     
+                    // Customize logs based on language/type
+                    if (language === 'Python') newLog = `> In [${step}]: executing cell...`;
+                    if (language === 'C') newLog = `> [0x${(4000+step*4).toString(16)}] MOV EAX, ${step}`;
+                    if (language === 'C#') newLog = `> Build: Task ${step}/15 Complete`;
+                    if (language === 'C++') newLog = `> Linker: Object_${step}.o connected`;
+
                     setLogs(prev => {
                         const last = prev[prev.length-1];
                         if (last !== newLog) return [...prev, newLog].slice(-6);
@@ -184,7 +389,9 @@
                 }
             }, [progress, language]);
 
-            const refreshPython = () => { if (!isInteractive) return; setPyData(Array.from({length: 4}, () => Math.floor(Math.random() * 80) + 20)); };
+            // --- Interactions ---
+            const refreshChart = () => { if (!isInteractive) return; setChartData(Array.from({length: 4}, () => Math.floor(Math.random() * 80) + 20)); };
+            
             const moveHero = (dir) => { 
                 if (!isInteractive) return; 
                 let {x, y} = heroPos;
@@ -192,78 +399,191 @@
                 if(dir==='U') y = Math.max(0, y-1); if(dir==='D') y = Math.min(5, y+1);
                 setHeroPos({x, y});
             };
+
+            const toggleTraffic = () => { if (!isInteractive) return; setTrafficState(p => (p+1)%3); };
+            const toggleMem = (i) => { if (!isInteractive) return; const n = [...memBlocks]; n[i] = !n[i]; setMemBlocks(n); };
+            const rotateCube = () => { if (!isInteractive) return; setCubeRot(r => r + 45); };
+            const shuffleSort = () => { if (!isInteractive) return; setSortData([...sortData].sort(() => Math.random() - 0.5)); };
             const tryLogin = () => { if (!isInteractive) return; setLoginState('processing'); setTimeout(() => setLoginState('success'), 1000); };
 
-            const renderPreviewContent = () => {
-                if (language === LANGUAGES.PYTHON) {
-                    return (
-                         <div className="grid grid-cols-2 gap-2 h-full p-2">
-                            <div className="col-span-2 bg-gray-800 rounded p-2 h-24 flex items-end justify-around relative cursor-pointer" onClick={refreshPython}>
-                                {pyData.map((h, i) => <div key={i} style={{ height: `${h}%` }} className="w-4 bg-blue-500 transition-all"></div>)}
-                                {isInteractive && <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50"><RefreshCw className="w-8 h-8 text-white"/></div>}
+            // --- Render Logic Switch ---
+            const renderContent = () => {
+                switch(scenarioType) {
+                    // PYTHON
+                    case 'ai_chart':
+                    case 'finance_chart':
+                        return (
+                            <div className="grid grid-cols-2 gap-2 h-full p-2">
+                                <div className="col-span-2 bg-gray-800 rounded p-2 h-24 flex items-end justify-around relative cursor-pointer group" onClick={refreshChart}>
+                                    {chartData.map((h, i) => (
+                                        <div key={i} style={{ height: `${h}%` }} className={`w-4 transition-all duration-500 ${scenarioType === 'finance_chart' ? (h>50 ? 'bg-red-500' : 'bg-blue-500') : 'bg-blue-500'}`}></div>
+                                    ))}
+                                    {isInteractive && <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"><RefreshCw size={12}/></div>}
+                                </div>
+                                <div className="col-span-2 text-[10px] text-green-400 font-mono bg-black p-1 rounded overflow-hidden border border-gray-700">
+                                    {logs.map((l, i) => <div key={i}>{l}</div>)}
+                                    <div ref={logEndRef} />
+                                </div>
                             </div>
-                            <div className="col-span-2 text-[10px] text-green-400 font-mono bg-black p-1 rounded overflow-hidden">
-                                {logs.map((l, i) => <div key={i}>{l}</div>)}
-                                <div ref={logEndRef} />
-                            </div>
-                         </div>
-                    );
-                }
-                else if (language === LANGUAGES.C || language === LANGUAGES.CPP) {
-                     return (
-                        <div className="relative h-full bg-[#1a1a1a] p-2 font-mono">
-                             <div className="grid grid-cols-8 grid-rows-6 gap-0.5 h-32 mb-2">
-                                {Array.from({ length: 48 }).map((_, i) => (
-                                    <div key={i} className={`border border-white/5 ${i===heroPos.y*8+heroPos.x ? 'bg-blue-500' : ''}`}></div>
+                        );
+                    case 'scraper_log':
+                        return (
+                            <div className="h-full bg-black p-2 font-mono text-xs text-gray-300 overflow-y-auto">
+                                <div className="text-green-500 mb-2">$ python scraper.py</div>
+                                {logs.map((l, i) => (
+                                    <div key={i} className="mb-1">
+                                        <span className="text-blue-400">[INFO]</span> {l.replace('>', '')} Found {Math.floor(Math.random()*10)} items.
+                                    </div>
                                 ))}
-                             </div>
-                             <div className="text-[10px] text-gray-400 border-t border-gray-700 pt-1">
-                                {logs.map((l, i) => <div key={i}>{l}</div>)}
-                                <div ref={logEndRef} />
-                             </div>
-                             {isInteractive && <div className="absolute top-2 right-2 text-xs text-white">WASD / Tap to Move</div>}
-                        </div>
-                     );
-                }
-                else {
-                    // C# (Homepage / Login Form)
-                    return (
-                        <div className="h-full bg-slate-800 p-2 flex flex-col">
-                            <div className="bg-white rounded h-24 flex items-center justify-center mb-2 cursor-pointer" onClick={tryLogin}>
-                                {loginState === 'success' ? <User className="text-blue-500 w-8 h-8"/> : <div className="text-slate-400 text-xs flex flex-col items-center"><div className="w-12 h-2 bg-slate-200 mb-1"/>LOGIN</div>}
+                                <div className="animate-pulse">_</div>
                             </div>
-                             <div className="flex-1 bg-black text-[10px] text-blue-300 font-mono p-1 overflow-hidden">
-                                <div>Output Window:</div>
-                                {logs.map((l, i) => <div key={i}>{l}</div>)}
-                                <div ref={logEndRef} />
-                             </div>
-                        </div>
-                    );
+                        );
+
+                    // C / C++
+                    case 'rpg_grid':
+                        return (
+                            <div className="relative h-full bg-[#1a1a1a] p-2 font-mono">
+                                <div className="grid grid-cols-8 grid-rows-6 gap-0.5 h-32 mb-2">
+                                    {Array.from({ length: 48 }).map((_, i) => (
+                                        <div key={i} className={`border border-white/5 transition-colors ${i===heroPos.y*8+heroPos.x ? 'bg-blue-500 shadow-[0_0_10px_blue]' : ''}`}></div>
+                                    ))}
+                                </div>
+                                <div className="text-[10px] text-gray-400 border-t border-gray-700 pt-1">
+                                    {logs.map((l, i) => <div key={i}>{l}</div>)}
+                                    <div ref={logEndRef} />
+                                </div>
+                                {isInteractive && (
+                                    <div className="absolute bottom-1 right-1 grid grid-cols-3 gap-1 opacity-70">
+                                        <div/> <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-blue-600" onClick={()=>moveHero('U')}>▲</button> <div/>
+                                        <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-blue-600" onClick={()=>moveHero('L')}>◀</button>
+                                        <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-blue-600" onClick={()=>moveHero('D')}>▼</button>
+                                        <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-blue-600" onClick={()=>moveHero('R')}>▶</button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    case 'traffic_light':
+                        return (
+                            <div className="h-full bg-slate-800 flex flex-col items-center justify-center gap-4 p-4 cursor-pointer" onClick={toggleTraffic}>
+                                <div className="bg-black p-4 rounded-full flex flex-col gap-2 shadow-2xl border-4 border-gray-700">
+                                    <div className={`w-8 h-8 rounded-full transition-all duration-300 ${trafficState===0 ? 'bg-red-500 shadow-[0_0_20px_red]' : 'bg-red-900'}`}></div>
+                                    <div className={`w-8 h-8 rounded-full transition-all duration-300 ${trafficState===1 ? 'bg-yellow-400 shadow-[0_0_20px_yellow]' : 'bg-yellow-900'}`}></div>
+                                    <div className={`w-8 h-8 rounded-full transition-all duration-300 ${trafficState===2 ? 'bg-green-500 shadow-[0_0_20px_green]' : 'bg-green-900'}`}></div>
+                                </div>
+                                <div className="text-xs text-gray-400 font-mono">STATUS: 0x{trafficState.toString(16).toUpperCase()}</div>
+                            </div>
+                        );
+                    case 'memory_map':
+                        return (
+                            <div className="h-full bg-slate-900 p-2 font-mono">
+                                <div className="text-xs text-gray-400 mb-2">HEAP DUMP (0x4000)</div>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {memBlocks.map((active, i) => (
+                                        <div key={i} onClick={() => toggleMem(i)} className={`h-6 rounded border cursor-pointer transition-all ${active ? 'bg-green-500 border-green-300' : 'bg-gray-800 border-gray-600 hover:bg-gray-700'}`}></div>
+                                    ))}
+                                </div>
+                                <div className="mt-4 text-[10px] text-blue-300">
+                                    Allocated: {memBlocks.filter(Boolean).length * 64} Bytes
+                                </div>
+                            </div>
+                        );
+                    case 'bank_log':
+                        return (
+                            <div className="h-full bg-blue-950 p-2 font-mono text-xs text-blue-100 flex flex-col">
+                                <div className="border-b border-blue-800 pb-1 mb-2 font-bold">ATM TERMINAL v2.0</div>
+                                <div className="flex-1 overflow-hidden">
+                                    {logs.map((l, i) => (
+                                        <div key={i} className="mb-1 opacity-80">> TR_ID#{1000+i}: {l.includes('Linker') ? 'Transaction Pending' : 'Verifying...'}</div>
+                                    ))}
+                                    <div className="text-yellow-400 mt-2 animate-pulse">INSERT CARD...</div>
+                                </div>
+                            </div>
+                        );
+                    case 'sort_visual':
+                        return (
+                            <div className="h-full bg-slate-800 p-4 flex flex-col items-center justify-center cursor-pointer" onClick={shuffleSort}>
+                                <div className="flex items-end gap-1 h-32 w-full justify-center">
+                                    {sortData.map((val, i) => (
+                                        <div key={i} style={{height: `${val*10}%`}} className="w-4 bg-purple-500 rounded-t transition-all duration-300"></div>
+                                    ))}
+                                </div>
+                                <div className="text-xs text-gray-400 mt-2">Click to Shuffle</div>
+                            </div>
+                        );
+
+                    // C#
+                    case 'login_form':
+                        return (
+                            <div className="h-full bg-slate-800 p-2 flex flex-col">
+                                <div className="bg-white rounded h-32 flex flex-col items-center justify-center gap-2 shadow-inner border-4 border-slate-300 relative overflow-hidden">
+                                    <div className="absolute top-0 w-full h-4 bg-blue-900"></div>
+                                    {loginState === 'success' ? (
+                                        <div className="text-green-600 font-bold animate-pulse flex flex-col items-center">
+                                            <CheckCircle size={24}/> Success
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-2/3 h-4 bg-gray-200 rounded border border-gray-300"></div>
+                                            <div className="w-2/3 h-4 bg-gray-200 rounded border border-gray-300"></div>
+                                            <button onClick={tryLogin} className={`px-3 py-1 bg-blue-600 text-white text-[10px] rounded ${loginState==='processing'?'opacity-50':''}`}>
+                                                {loginState==='processing'?'...':'Login'}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="mt-2 text-[10px] text-gray-400 font-mono bg-black p-1 rounded">
+                                    Debug: UserInputEvent
+                                </div>
+                            </div>
+                        );
+                    case 'inventory_list':
+                        return (
+                            <div className="h-full bg-white text-black p-2 font-sans text-xs flex flex-col">
+                                <div className="font-bold border-b pb-1 mb-1">Stock Manager</div>
+                                <table className="w-full text-left">
+                                    <thead><tr className="text-gray-500"><th>ID</th><th>Item</th><th>Qty</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>01</td><td>Apple</td><td>{Math.floor(progress/5)}</td></tr>
+                                        <tr><td>02</td><td>Banana</td><td>12</td></tr>
+                                        <tr><td>03</td><td>Coffee</td><td>8</td></tr>
+                                    </tbody>
+                                </table>
+                                <div className="mt-auto bg-gray-100 p-1 text-gray-500 text-[10px]">Connected to DB</div>
+                            </div>
+                        );
+                    case 'unity_box':
+                        return (
+                            <div className="h-full bg-slate-700 flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden relative" onClick={rotateCube}>
+                                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                                <div 
+                                    className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 border border-blue-300 shadow-2xl transition-transform duration-500 ease-out"
+                                    style={{ transform: `rotate(${cubeRot}deg) scale(${1 + (cubeRot%90)/100})` }}
+                                >
+                                    <div className="flex items-center justify-center h-full text-white font-bold opacity-50">3D</div>
+                                </div>
+                                <div className="absolute bottom-2 left-2 text-[10px] text-white/50">Scene: Level 1</div>
+                            </div>
+                        );
+
+                    default:
+                        return <div className="flex items-center justify-center h-full text-gray-500">Preview Loading...</div>;
                 }
             };
 
             return (
                 <div className="w-full h-full bg-gray-900 border-l border-gray-700 relative shadow-xl overflow-hidden flex flex-col">
-                    <div className="bg-gray-800 text-xs p-2 border-b border-gray-700 flex justify-between text-gray-300">
-                         <span className="font-bold">PREVIEW: {language || "WAITING"} BUILD</span>
-                         {isInteractive ? <span className="text-green-400 animate-pulse font-bold">INTERACTIVE</span> : <span className="text-gray-500">BUILDING...</span>}
+                    <div className="bg-gray-800 text-xs p-2 border-b border-gray-700 flex justify-between text-gray-300 items-center">
+                         <span className="font-bold truncate max-w-[150px]">{language}: {scenarioType.toUpperCase().replace('_', ' ')}</span>
+                         {isInteractive ? <span className="text-green-400 animate-pulse font-bold text-[10px] flex items-center gap-1"><Activity size={10}/> LIVE</span> : <span className="text-gray-500 text-[10px]">BUILDING...</span>}
                     </div>
-                    <div className="flex-1 relative bg-gray-900">
-                        {language ? renderPreviewContent() : (
+                    <div className="flex-1 relative bg-gray-900 overflow-hidden">
+                        {language ? renderContent() : (
                              <div className="h-full flex flex-col items-center justify-center text-gray-600 gap-2">
                                 <Code2 size={48} className="opacity-20" />
                                 <span className="text-xs">Select a language to start</span>
                             </div>
                         )}
                     </div>
-                    {isInteractive && (language === LANGUAGES.C || language === LANGUAGES.CPP) && (
-                         <div className="absolute bottom-4 right-4 grid grid-cols-3 gap-1 opacity-70 bg-black/50 p-2 rounded">
-                             <div/> <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-gray-500" onClick={()=>moveHero('U')}>▲</button> <div/>
-                             <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-gray-500" onClick={()=>moveHero('L')}>◀</button>
-                             <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-gray-500" onClick={()=>moveHero('D')}>▼</button>
-                             <button className="bg-gray-600 w-6 h-6 rounded flex items-center justify-center text-xs hover:bg-gray-500" onClick={()=>moveHero('R')}>▶</button>
-                         </div>
-                    )}
                 </div>
             );
         };
@@ -273,6 +593,7 @@
           const [gameState, setGameState] = useState('menu');
           const [difficulty, setDifficulty] = useState('beginner'); 
           const [selectedLanguage, setSelectedLanguage] = useState(null);
+          const [currentScenario, setCurrentScenario] = useState(null);
           
           const [score, setScore] = useState(0);
           const [lives, setLives] = useState(3);
@@ -287,15 +608,21 @@
 
           const startGame = () => {
             if (!selectedLanguage) return;
+            
+            // Randomly select a scenario
+            const scenarios = SCENARIOS[selectedLanguage];
+            const randomScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+            setCurrentScenario(randomScenario);
+
             setScore(0);
             setLives(3);
             setCurrentQIndex(0);
             setDisplayCode([]);
             setGameState('playing');
-            triggerTypingEffect(selectedLanguage, 0);
+            triggerTypingEffect(randomScenario, 0);
           };
 
-          const triggerTypingEffect = (lang, qIndex) => {
+          const triggerTypingEffect = (scenario, qIndex) => {
             setTyping(true);
             let lines = [];
             let count = 0;
@@ -311,14 +638,14 @@
                 if (count >= maxLines) {
                     clearInterval(interval);
                     setTimeout(() => {
-                        showQuestion(lang, qIndex, lines);
+                        showQuestion(scenario, qIndex, lines);
                     }, 300);
                 }
             }, 50);
           };
 
-          const showQuestion = (lang, qIndex, currentLines) => {
-            const q = QUESTIONS_SOURCE[lang][qIndex];
+          const showQuestion = (scenario, qIndex, currentLines) => {
+            const q = scenario.questions[qIndex];
             if (!q) { endGame(true); return; }
             
             setTyping(false);
@@ -337,7 +664,8 @@
           };
 
           const handleAnswer = (answer) => {
-            const q = QUESTIONS_SOURCE[selectedLanguage][currentQIndex];
+            if (!currentScenario) return;
+            const q = currentScenario.questions[currentQIndex];
             const isCorrect = answer.trim() === q.answer;
 
             if (isCorrect) {
@@ -354,12 +682,12 @@
           const nextQuestion = () => {
             if (lives <= 0) { endGame(false); return; }
             const nextIdx = currentQIndex + 1;
-            if (nextIdx >= QUESTIONS_SOURCE[selectedLanguage].length) { endGame(true); return; }
+            if (nextIdx >= currentScenario.questions.length) { endGame(true); return; }
 
             setCurrentQIndex(nextIdx);
             setFeedback(null);
             setGameState('playing');
-            triggerTypingEffect(selectedLanguage, nextIdx);
+            triggerTypingEffect(currentScenario, nextIdx);
           };
 
           const retryQuestion = () => {
@@ -378,11 +706,11 @@
             setGameState('menu');
             setFeedback(null);
             setDisplayCode([]);
+            setCurrentScenario(null);
           };
 
-          // --- SCREENS ---
+          // --- UI COMPONENTS ---
 
-          // 1. START SCREEN (Code Master Style)
           if (gameState === 'menu') {
             return (
               <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 font-sans animate-fade-in">
@@ -419,7 +747,7 @@
                   <div className="mb-6">
                     <label className="text-xs uppercase text-slate-500 font-bold tracking-wider mb-2 block text-left">언어 선택</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {Object.values(LANGUAGES).map(lang => (
+                      {Object.keys(SCENARIOS).map(lang => (
                         <button
                           key={lang}
                           onClick={() => setSelectedLanguage(lang)}
@@ -452,7 +780,7 @@
             );
           }
 
-          // 2. PLAYING / RESULT SCREEN (Split View)
+          // 2. PLAYING / RESULT SCREEN
           return (
             <div className="min-h-screen bg-slate-950 text-white flex flex-col md:flex-row font-sans overflow-hidden">
                 {/* LEFT PANEL */}
@@ -463,8 +791,10 @@
                             <Cpu className="w-4 h-4 text-blue-400" />
                             <span className="font-bold text-slate-200">{selectedLanguage}</span>
                             <span className="text-slate-600">|</span>
+                            <span className="text-gray-400">{currentScenario?.title}</span>
+                            <span className="text-slate-600">|</span>
                             <span className={difficulty === 'hardcore' ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>
-                                {difficulty.toUpperCase()} MODE
+                                {difficulty.toUpperCase()}
                             </span>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -473,14 +803,13 @@
                         </div>
                     </div>
 
-                    {/* Content Area: Playing OR Result */}
+                    {/* Content */}
                     {gameState === 'gameover' ? (
-                        // --- RESULT VIEW (Integrated in Left Panel) ---
                         <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in">
                             <Trophy size={80} className={`mb-6 drop-shadow-2xl ${lives > 0 ? 'text-yellow-400' : 'text-slate-600'}`} />
                             <h2 className="text-3xl font-black mb-2">{lives > 0 ? "BUILD COMPLETE!" : "BUILD FAILED"}</h2>
                             <p className="text-slate-400 mb-8 text-center max-w-sm">
-                                {lives > 0 ? "축하합니다! 오른쪽 패널에서 당신이 만든 결과물을 확인하고 직접 테스트해보세요." : "코드에 버그가 너무 많습니다. 다시 시도해보세요."}
+                                {lives > 0 ? "축하합니다! 오른쪽 패널에서 결과물을 확인하세요." : "버그가 발생했습니다. 다시 시도하세요."}
                             </p>
                             
                             <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 w-full max-w-sm mb-8">
@@ -489,10 +818,8 @@
                                     <span className="text-4xl font-bold text-white">{score}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-slate-400 text-sm">STATUS</span>
-                                    <span className={`px-2 py-1 rounded text-xs font-bold ${lives > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                        {lives > 0 ? "STABLE" : "CRITICAL ERROR"}
-                                    </span>
+                                    <span className="text-slate-400 text-sm">PROJECT</span>
+                                    <span className="text-sm font-mono text-blue-300">{currentScenario?.title}</span>
                                 </div>
                             </div>
 
@@ -505,7 +832,6 @@
                             </button>
                         </div>
                     ) : (
-                        // --- PLAYING VIEW ---
                         <>
                             {/* Code Area */}
                             <div className="flex-1 overflow-y-auto p-4 md:p-6 font-mono text-sm md:text-base leading-relaxed relative custom-scrollbar" onClick={() => difficulty === 'hardcore' && inputRef.current?.focus()}>
@@ -559,7 +885,7 @@
                                         </form>
                                     ) : (
                                         <div className="grid grid-cols-2 gap-3">
-                                            {QUESTIONS_SOURCE[selectedLanguage][currentQIndex].options.map((opt, idx) => (
+                                            {currentScenario.questions[currentQIndex].options.map((opt, idx) => (
                                                 <button
                                                     key={idx}
                                                     onClick={() => handleAnswer(opt)}
@@ -586,7 +912,7 @@
                                             {feedback.correct ? "COMPILATION SUCCESS" : "SYNTAX ERROR"}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-slate-300 mb-4 font-mono pl-8">{QUESTIONS_SOURCE[selectedLanguage][currentQIndex].explanation}</p>
+                                    <p className="text-sm text-slate-300 mb-4 font-mono pl-8">{currentScenario.questions[currentQIndex].explanation}</p>
                                     
                                     <div className="flex gap-2">
                                         {feedback.correct ? (
@@ -609,7 +935,8 @@
                 <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-slate-800 bg-black h-1/3 md:h-full transition-all duration-300">
                      <ProjectPreview 
                         language={selectedLanguage} 
-                        progress={(currentQIndex / QUESTIONS_SOURCE[selectedLanguage || 'C'].length) * 100} 
+                        scenarioType={currentScenario ? currentScenario.type : null}
+                        progress={currentScenario ? (currentQIndex / currentScenario.questions.length) * 100 : 0}
                         isInteractive={gameState === 'gameover' && lives > 0} 
                     />
                 </div>
