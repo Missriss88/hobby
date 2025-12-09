@@ -1,569 +1,538 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-Terminal, Play, RotateCcw, CheckCircle, XCircle,
-Code2, Cpu, Trophy, Activity, Monitor, RefreshCw,
-User, Keyboard, ChevronRight, Star, BookOpen, Settings,
-ArrowUp, ArrowDown, ArrowLeft, ArrowRight
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Rush: Syntax Savior</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel (JSX 컴파일용) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;700;900&display=swap');
 
-const CodeRushRemastered = () => {
-// --- 상태 관리 ---
-const [gameState, setGameState] = useState('menu'); // menu, playing, feedback, gameover
-const [difficulty, setDifficulty] = useState('beginner'); // 'beginner' | 'hardcore'
-const [selectedLanguage, setSelectedLanguage] = useState(null); // 'Python', 'C', 'C#', 'C++'
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-const [score, setScore] = useState(0);
-const [lives, setLives] = useState(3);
-const [currentQIndex, setCurrentQIndex] = useState(0);
-const [displayCode, setDisplayCode] = useState([]);
-const [typing, setTyping] = useState(false);
-const [feedback, setFeedback] = useState(null);
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-const [userAnswer, setUserAnswer] = useState("");
-const codeEndRef = useRef(null);
-const inputRef = useRef(null);
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slide-in-bottom { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoom-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+        .animate-slide-up { animation: slide-in-bottom 0.5s ease-out forwards; }
+        .animate-zoom-in { animation: zoom-in 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white h-screen overflow-hidden selection:bg-blue-500 selection:text-white">
+    <div id="root"></div>
 
-// --- 데이터셋 ---
-const LANGUAGES = {
-PYTHON: 'Python',
-C: 'C',
-CSHARP: 'C#',
-CPP: 'C++'
-};
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-const QUESTIONS_SOURCE = {
-[LANGUAGES.PYTHON]: [
-{ context: "Step 1: 데이터 분석 라이브러리 로드", preCode: "", gap: "import", postCode: " pandas as pd\nimport math", options:
-["include", "using", "import", "require"], answer: "import", explanation: "라이브러리를 사용할 때는 import 키워드를 씁니다." },
-{ context: "Step 2: 데이터셋 파일 열기", preCode: "with ", gap: "open", postCode: "(\"dataset.csv\", \"r\") as f:\n raw_data =
-f.readlines()", options: ["file", "load", "open", "read"], answer: "open", explanation: "파일을 안전하게 열 때는 with open(...)
-패턴을 사용합니다." },
-{ context: "Step 3: 데이터 파싱 (문자열 분리)", preCode: "header = raw_data[0].strip().", gap: "split", postCode: "(\",\")",
-options: ["slice", "divide", "split", "cut"], answer: "split", explanation: "CSV 데이터를 쉼표 기준으로 나누려면 split을 사용합니다." },
-{ context: "Step 4: AI 모델 클래스 정의", preCode: "class AIModel:\n def ", gap: "__init__", postCode: "(self,
-learning_rate):\n self.lr = learning_rate", options: ["__main__", "__init__", "start", "__new__"], answer: "__init__",
-explanation: "클래스의 초기화 메서드는 __init__입니다." },
-{ context: "Step 5: 학습 메서드 정의", preCode: " ", gap: "def", postCode: " train(self, data):\n print(\"Training
-started...\")", options: ["function", "def", "func", "void"], answer: "def", explanation: "함수(메서드) 정의는 def로 시작합니다." },
-{ context: "Step 6: 학습 루프 (에포크 반복)", preCode: " epochs = 10\n for i in ", gap: "range", postCode: "(epochs):\n
-self.optimize()", options: ["loop", "range", "xrange", "list"], answer: "range", explanation: "지정된 횟수만큼 반복하려면 range를
-사용합니다." },
-{ context: "Step 7: 손실값 기록 (리스트 추가)", preCode: " history = []\n history.", gap: "append", postCode: "(current_loss)",
-options: ["push", "add", "insert", "append"], answer: "append", explanation: "리스트에 값을 추가할 때는 append를 사용합니다." },
-{ context: "Step 8: 학습 중단 조건 확인", preCode: " ", gap: "if", postCode: " current_loss < 0.01:\n break", options:
-    ["when", "check" , "if" , "case" ], answer: "if" , explanation: "조건을 검사할 때는 if문을 사용합니다." }, {
-    context: "Step 9: 예외 처리 (0으로 나누기 방지)" , preCode: "        " , gap: "try" ,
-    postCode: ":\n            accuracy = correct / total\n        except ZeroDivisionError:\n            accuracy = 0" ,
-    options: ["try", "attempt" , "do" , "begin" ], answer: "try" , explanation: "에러가 발생할 수 있는 코드는 try 블록에 넣습니다." }, {
-    context: "Step 10: 정확도 반올림" , preCode: "        print(f\" Acc: {", gap: "round" , postCode: "(accuracy, 4)}\" )",
-    options: ["ceil", "floor" , "round" , "fix" ], answer: "round" , explanation: "소수점을 정리할 때는 round 함수를 씁니다." }, {
-    context: "Step 11: 람다 함수로 전처리" , preCode: "normalize = " , gap: "lambda" , postCode: " x: x / 255.0" , options:
-    ["func", "def" , "lambda" , "arrow" ], answer: "lambda" , explanation: "간단한 익명 함수는 lambda로 정의합니다." }, {
-    context: "Step 12: 설정값 존재 확인" , preCode: "config = {'batch': 32}\nif 'batch' " , gap: "in" ,
-    postCode: " config:\n    print(\" Batch size set\")", options: ["has", "in" , "exists" , "contains" ], answer: "in"
-    , explanation: "딕셔너리 키 존재 여부는 in 연산자로 확인합니다." }, { context: "Step 13: 데이터 검증 (모두 통과?)" ,
-    preCode: "validations = [True, True, True]\nis_valid = " , gap: "all" , postCode: "(validations)" , options:
-    ["every", "all" , "check" , "sum" ], answer: "all" , explanation: "모든 요소가 참인지 확인할 때는 all()을 사용합니다." }, {
-    context: "Step 14: 데이터셋 크기 확인" , preCode: "n_samples = " , gap: "len" , postCode: "(raw_data)" , options:
-    ["length", "size" , "count" , "len" ], answer: "len" , explanation: "리스트나 문자열의 길이는 len()입니다." }, {
-    context: "Step 15: 결과 출력 및 서버 시작" , preCode: "print(\" System Ready\")\n", gap: "print" , postCode: "(\" Server
-    listening on port 8080...\")", options: ["printf", "echo" , "print" , "write" ], answer: "print" ,
-    explanation: "화면에 메시지를 출력할 때는 print를 사용합니다." } ], [LANGUAGES.C]: [ { context: "Step 1: 표준 입출력 헤더 포함" ,
-    preCode: "#include <" , gap: "stdio.h" , postCode: ">" , options: ["iostream", "stdio.h" , "std.h" , "io.h" ],
-    answer: "stdio.h" , explanation: "C언어의 표준 입출력 함수들은 stdio.h에 있습니다." }, { context: "Step 2: 상수 정의 (맵 크기)" ,
-    preCode: "#" , gap: "define" , postCode: " MAP_WIDTH 100" , options: ["const", "define" , "set" , "var" ],
-    answer: "define" , explanation: "매크로 상수는 #define으로 정의합니다." }, { context: "Step 3: 플레이어 구조체 정의" , preCode: "" ,
-    gap: "struct" , postCode: " Player {\n    int x, y;\n    int hp;\n};" , options: ["class", "struct" , "type" , "rec"
-    ], answer: "struct" , explanation: "데이터를 묶을 때는 구조체(struct)를 사용합니다." }, { context: "Step 4: 게임 맵 메모리 할당" ,
-    preCode: "int *map = (int*)" , gap: "malloc" , postCode: "(sizeof(int) * MAP_WIDTH);" , options: ["new", "alloc"
-    , "malloc" , "mem" ], answer: "malloc" , explanation: "동적 메모리 할당은 malloc 함수를 사용합니다." }, {
-    context: "Step 5: 메모리 할당 실패 확인" , preCode: "if (map == " , gap: "NULL" , postCode: ") {\n    return -1;\n}" ,
-    options: ["nil", "null" , "NULL" , "0" ], answer: "NULL" , explanation: "포인터가 비었음을 확인할 때는 NULL 매크로를 씁니다." }, {
-    context: "Step 6: 플레이어 이름 복사" , preCode: "char name[20];\n" , gap: "strcpy" , postCode: "(name, \" Hero\");",
-    options: ["strcopy", "cpystr" , "strcpy" , "move" ], answer: "strcpy" , explanation: "문자열 대입(복사)은 strcpy 함수를 사용합니다."
-    }, { context: "Step 7: 구조체 크기 확인" , preCode: "int p_size = " , gap: "sizeof" , postCode: "(struct Player);" ,
-    options: ["len", "size" , "sizeof" , "width" ], answer: "sizeof" , explanation: "타입의 바이트 크기는 sizeof로 구합니다." }, {
-    context: "Step 8: 포인터로 초기값 설정" , preCode: "struct Player p;\nstruct Player *ptr = " , gap: "&" ,
-    postCode: "p;\nptr->hp = 100;" , options: ["*", "&" , "@" , "#" ], answer: "&" ,
-    explanation: "변수의 주소값은 & 연산자로 가져옵니다." }, { context: "Step 9: 메인 게임 루프 시작" , preCode: "int running = 1;\n" ,
-    gap: "while" , postCode: "(running) {\n    update_game();\n}" , options: ["for", "loop" , "until" , "while" ],
-    answer: "while" , explanation: "조건이 참인 동안 반복하려면 while문을 씁니다." }, { context: "Step 10: 사용자 입력 처리 (포인터)" ,
-    preCode: "int input;\nscanf(\" %d\", ", gap: " &", postCode: "input);" , options: ["*", "&" , "$" , "ptr" ],
-    answer: "&" , explanation: "scanf에는 변수의 주소(&)를 넘겨주어야 합니다." }, { context: "Step 11: 입력에 따른 분기" ,
-    preCode: "switch(input) {\n    " , gap: "case" , postCode: " 1: move_up(); break;\n}" , options: ["when", "if"
-    , "case" , "option" ], answer: "case" , explanation: "switch문 내부의 조건 분기는 case를 사용합니다." }, {
-    context: "Step 12: 데미지 처리 (역참조)" , preCode: "void hit(int *hp) {\n    " , gap: "*" , postCode: "hp -= 10;\n}" ,
-    options: ["&", "*" , "->" , "." ], answer: "*" , explanation: "포인터가 가리키는 값을 수정하려면 * 연산자를 씁니다." }, {
-    context: "Step 13: 명령어 문자열 비교" , preCode: "if (" , gap: "strcmp" , postCode: "(cmd, \" quit\")==0) running=0;",
-    options: ["strequal", "strcmp" , "compare" , "eq" ], answer: "strcmp" ,
-    explanation: "두 문자열이 같은지 비교할 때는 strcmp를 사용합니다." }, { context: "Step 14: 상태 정보 출력" , preCode: "" , gap: "printf" ,
-    postCode: "(\" HP: %d\\n\", p.hp);", options: ["print", "cout" , "printf" , "log" ], answer: "printf" ,
-    explanation: "형식화된 출력은 printf를 사용합니다." }, { context: "Step 15: 종료 및 값 반환" , preCode: "free(map);\n" , gap: "return"
-    , postCode: " 0;" , options: ["exit", "back" , "return" , "out" ], answer: "return" ,
-    explanation: "함수를 종료하고 값을 반환할 때는 return을 씁니다." } ], [LANGUAGES.CSHARP]: [ { context: "Step 1: 시스템 라이브러리 사용" ,
-    preCode: "" , gap: "using" , postCode: " System;\nusing System.Windows.Forms;" , options: ["import", "include"
-    , "using" , "from" ], answer: "using" , explanation: "네임스페이스를 가져올 때는 using을 사용합니다." }, {
-    context: "Step 2: 네임스페이스 선언" , preCode: "" , gap: "namespace" , postCode: " MyApp {\n    // ...\n}" , options:
-    ["package", "module" , "namespace" , "region" ], answer: "namespace" , explanation: "코드를 그룹화하는 네임스페이스를 선언합니다." }, {
-    context: "Step 3: 폼 클래스 상속" , preCode: "public class LoginForm " , gap: ":" ,
-    postCode: " Form {\n    // Form Logic\n}" , options: ["extends", ":" , "implements" , "->" ], answer: ":" ,
-    explanation: "C#에서 상속은 콜론(:)을 사용합니다." }, { context: "Step 4: 상수 타이틀 정의" , preCode: "    " , gap: "const" ,
-    postCode: " string TITLE = \" Login App\";", options: ["final", "static" , "const" , "readonly" ], answer: "const" ,
-    explanation: "변하지 않는 값은 const로 선언합니다." }, { context: "Step 5: 연결 상태 열거형 정의" , preCode: "    public " , gap: "enum" ,
-    postCode: " State { Disconnected, Connected }" , options: ["type", "enum" , "list" , "option" ], answer: "enum" ,
-    explanation: "상태 목록을 정의할 때는 enum을 사용합니다." }, { context: "Step 6: 유저명 프로퍼티 (Getter/Setter)" ,
-    preCode: "    public string Username { get; " , gap: "set" , postCode: "; }" , options: ["put", "set" , "let"
-    , "init" ], answer: "set" , explanation: "프로퍼티의 값을 설정하는 접근자는 set입니다." }, { context: "Step 7: 인증 인터페이스 정의" ,
-    preCode: "    public " , gap: "interface" , postCode: " IAuthenticator {\n        bool Validate(string u);\n    }" ,
-    options: ["class", "struct" , "interface" , "protocol" ], answer: "interface" ,
-    explanation: "기능의 명세는 interface로 정의합니다." }, { context: "Step 8: 생성자 및 부모 초기화" , preCode: "    public LoginForm() " ,
-    gap: ":" , postCode: " base() {\n        InitializeComponent();\n    }" , options: ["super", "parent" , "base"
-    , "root" ], answer: ":" , explanation: "생성자에서 부모 생성자를 호출할 때는 : base()를 씁니다." }, { context: "Step 9: UI 버튼 객체 생성" ,
-    preCode: "    Button btn = " , gap: "new" , postCode: " Button();" , options: ["alloc", "create" , "new" , "make" ],
-    answer: "new" , explanation: "객체(인스턴스)를 생성할 때는 new 키워드를 씁니다." }, { context: "Step 10: 비동기 로그인 메서드" ,
-    preCode: "    public " , gap: "async" , postCode: " void OnLoginClick(object s, EventArgs e)" , options:
-    ["await", "async" , "sync" , "void" ], answer: "async" , explanation: "비동기 메서드를 선언할 때는 async 키워드를 붙입니다." }, {
-    context: "Step 11: 타입 추론 변수 선언" , preCode: "        " , gap: "var" , postCode: " db = new DatabaseConnection();" ,
-    options: ["let", "auto" , "var" , "dim" ], answer: "var" , explanation: "우변에서 타입을 알 수 있을 때 var를 사용합니다." }, {
-    context: "Step 12: 환영 메시지 (문자열 보간)" , preCode: "        string msg = " , gap: "$" , postCode: "\" Welcome,
-    {Username}!\";", options: ["@", "$" , "#" , "%" ], answer: "$" , explanation: "문자열 내 변수를 쓰려면 $를 앞에 붙입니다." }, {
-    context: "Step 13: 널 조건부 연산자" , preCode: "        int? len = Username" , gap: "?." , postCode: "Length;" , options:
-    [".", "?." , "!!" , "??" ], answer: "?." , explanation: "객체가 null일 수 있을 때 안전하게 접근하려면 ?.를 씁니다." }, {
-    context: "Step 14: 데이터 필터링 (LINQ)" , preCode: "        var admins = users." , gap: "Where" ,
-    postCode: "(u => u.IsAdmin);" , options: ["Filter", "Select" , "Where" , "Find" ], answer: "Where" ,
-    explanation: "조건에 맞는 요소를 찾을 때는 LINQ의 Where를 씁니다." }, { context: "Step 15: 디버그 로그 출력" , preCode: "        " ,
-    gap: "Console.WriteLine" , postCode: "(\" Login Sequence Complete\");", options: ["print", "Console.WriteLine"
-    , "Debug.Log" , "System.out" ], answer: "Console.WriteLine" ,
-    explanation: "콘솔에 내용을 출력할 때는 Console.WriteLine을 사용합니다." } ], [LANGUAGES.CPP]: [ { context: "Step 1: 입출력 스트림 포함" ,
-    preCode: "#include <" , gap: "iostream" , postCode: ">" , options: ["stdio.h", "iostream" , "string" , "vector" ],
-    answer: "iostream" , explanation: "C++ 입출력은 iostream 헤더를 사용합니다." }, { context: "Step 2: 표준 네임스페이스 사용" ,
-    preCode: "using namespace " , gap: "std" , postCode: ";" , options: ["cpp", "std" , "stl" , "core" ], answer: "std"
-    , explanation: "표준 라이브러리는 std 네임스페이스 안에 있습니다." }, { context: "Step 3: 좌표 템플릿 정의 (제네릭)" , preCode: "" ,
-    gap: "template" , postCode: " <typename T>\nstruct Vec2 { T x, y; };" , options: ["generic", "template" , "class"
-    , "meta" ], answer: "template" , explanation: "다양한 타입에 대응하는 구조체는 template으로 만듭니다." }, {
-    context: "Step 4: 게임 엔티티 클래스" , preCode: "class Entity {\npublic:\n    " , gap: "virtual" ,
-    postCode: " void Update() = 0;" , options: ["static", "virtual" , "inline" , "friend" ], answer: "virtual" ,
-    explanation: "자식 클래스에서 오버라이드할 함수는 virtual로 선언합니다." }, { context: "Step 5: 플레이어 상속" , preCode: "class Player : " ,
-    gap: "public" , postCode: " Entity {\n    // ...\n};" , options: ["extends", "public" , "virtual" , "super" ],
-    answer: "public" , explanation: "일반적인 상속 접근 지정자는 public입니다." }, { context: "Step 6: 정적 멤버 (적 카운트)" , preCode: "    "
-    , gap: "static" , postCode: " int enemyCount;" , options: ["const", "global" , "static" , "shared" ],
-    answer: "static" , explanation: "모든 인스턴스가 공유하는 변수는 static입니다." }, { context: "Step 7: 엔티티 목록 (벡터)" ,
-    preCode: "#include <vector>\n" , gap: "vector" , postCode: "<Entity*> entities;" , options: ["list", "array"
-    , "vector" , "deque" ], answer: "vector" , explanation: "크기가 변하는 배열은 std::vector를 사용합니다." }, {
-    context: "Step 8: 스마트 포인터 사용" , preCode: "#include <memory>\nstd::" , gap: "unique_ptr" ,
-    postCode: "<Player> p = std::make_unique<Player>();" , options: ["auto_ptr", "unique_ptr" , "smart_ptr" , "weak_ptr"
-    ], answer: "unique_ptr" , explanation: "자동으로 메모리를 해제해주는 스마트 포인터입니다." }, { context: "Step 9: 자동 타입 추론 반복" ,
-    preCode: "for (" , gap: "auto" , postCode: " e : entities) {\n    e->Update();\n}" , options: ["var", "let" , "auto"
-    , "int" ], answer: "auto" , explanation: "타입을 컴파일러가 알아서 추론하게 하려면 auto를 씁니다." }, { context: "Step 10: 범위 기반 for문" ,
-    preCode: "for (int id " , gap: ":" , postCode: " activeIds) {\n    // process\n}" , options: ["in", ":" , "of"
-    , "from" ], answer: ":" , explanation: "컨테이너의 모든 요소를 순회할 때 콜론(:)을 씁니다." }, { context: "Step 11: 참조자에 의한 전달" ,
-    preCode: "void Move(Vec2<int>" , gap: "&" , postCode: " pos) {\n    this->pos = pos;\n}" , options: ["*", "&"
-    , "ref" , "%" ], answer: "&" , explanation: "복사 비용을 줄이기 위해 참조자(&)를 사용합니다." }, { context: "Step 12: 멤버 접근 화살표" ,
-    preCode: "Entity* e = new Player();\ne" , gap: "->" , postCode: "Update();" , options: [".", "->" , "::" , ":" ],
-    answer: "->" , explanation: "포인터로 객체 멤버에 접근할 때는 -> 연산자를 씁니다." }, { context: "Step 13: 사용자 입력 받기" ,
-    preCode: "char key;\n" , gap: "cin" , postCode: " >> key;" , options: ["cout", "scan" , "cin" , "get" ],
-    answer: "cin" , explanation: "C++ 표준 입력 스트림은 cin입니다." }, { context: "Step 14: 화면 출력" , preCode: "" , gap: "cout" ,
-    postCode: " << \" Game Over\" << endl;", options: ["cin", "print" , "cout" , "out" ], answer: "cout" ,
-    explanation: "C++ 표준 출력 스트림은 cout입니다." }, { context: "Step 15: 소멸자 정의 (메모리 해제)" , preCode: "    " , gap: "~" ,
-    postCode: "Player() {\n        cout << \" Destroyed\";\n }", options: ["-", "!" , "~" , "#" ], answer: "~" ,
-    explanation: "객체가 파괴될 때 호출되는 소멸자는 ~로 시작합니다." } ] }; const FILLER_CODE=[ "import sys; sys.setrecursionlimit(1000)"
-    , "void* memory = malloc(1024 * 1024);" , "public static void Main(string[] args) {"
-    , "template <typename T> class Matrix {" , "while(true) { process_event(e); }" , "if (buffer_overflow) return -1;"
-    , "try { connect_to_server(); } catch(e) {}" , "const int MAX_USERS = 5000;" , "// Optimization needed here"
-    , "return this->value * 0.5f;" , "await db.SaveChangesAsync();" , "std::map<string, int> cache;"
-    , "for(auto it = begin; it != end; ++it)" , "// TODO: Refactor this mess" , "docker build -t myapp ."
-    , "git commit -m 'wip'" , "npm install react-dom" ]; // --- 프리뷰 컴포넌트 (게임 로직 보조) --- // isInteractive가 true이면 결과물을
-    조작할 수 있습니다. const ProjectPreview=({ language, progress, isInteractive })=> {
-    const [logs, setLogs] = useState([]);
-    const logEndRef = useRef(null);
-    const [heroPos, setHeroPos] = useState({ x: 2, y: 3 });
-    const [pyData, setPyData] = useState([40, 70, 50, 90]);
-    const [loginState, setLoginState] = useState('form'); // form, processing, success
-
-    useEffect(() => {
-    if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }, [logs]);
-
-    // 진행 상황에 따른 로그 시뮬레이션
-    useEffect(() => {
-    const step = Math.floor(progress / (100/15));
-    if (step > 0) {
-    let newLog = "";
-    if (language === LANGUAGES.PYTHON) newLog = `> [Step ${step}] Executing cell: model.train()`;
-    else if (language === LANGUAGES.C) newLog = `> [0x${(4000 + step*16).toString(16)}] ALLOCATING MEMORY... OK`;
-    else if (language === LANGUAGES.CSHARP) newLog = `> [Debug] Building Form Component (${step}/15)`;
-    else if (language === LANGUAGES.CPP) newLog = `> [EntitySystem] Linking Object ID: ${step}`;
-
-    setLogs(prev => {
-    const last = prev[prev.length-1];
-    if (last !== newLog) return [...prev, newLog].slice(-6);
-    return prev;
-    });
-    }
-    }, [progress, language]);
-
-    // 인터랙션 함수들
-    const moveHero = (dir) => {
-    if (!isInteractive) return;
-    let {x, y} = heroPos;
-    if(dir==='L') x = Math.max(0, x-1); if(dir==='R') x = Math.min(7, x+1);
-    if(dir==='U') y = Math.max(0, y-1); if(dir==='D') y = Math.min(5, y+1);
-    setHeroPos({x, y});
-    };
-
-    const refreshPython = () => {
-    if (!isInteractive) return;
-    setPyData(Array.from({length: 4}, () => Math.floor(Math.random() * 80) + 20));
-    };
-
-    const tryLogin = () => {
-    if (!isInteractive) return;
-    setLoginState('processing');
-    setTimeout(() => setLoginState('success'), 1000);
-    };
-
-    const resetLogin = () => {
-    setLoginState('form');
-    }
-
-    const renderPreviewContent = () => {
-    if (language === LANGUAGES.PYTHON) {
-    return (
-    <div className="flex flex-col h-full gap-2 p-2">
-        <div className="bg-slate-800 rounded p-4 flex-1 flex items-end justify-around relative cursor-pointer border border-slate-700 hover:border-blue-500 transition-all"
-            onClick={refreshPython}>
-            {pyData.map((h, i) => <div key={i} style={{ height: `${h}%` }}
-                className="w-8 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t transition-all duration-500"></div>
-            )}
-            {isInteractive && (
-            <div
-                className="absolute top-2 right-2 text-xs text-slate-500 flex items-center gap-1 bg-slate-900/80 px-2 py-1 rounded">
-                <RefreshCw size={12} /> Click to Refresh
-            </div>
-            )}
-        </div>
-        <div
-            className="h-32 text-[10px] text-green-400 font-mono bg-black p-2 rounded overflow-hidden border border-slate-800">
-            <div className="opacity-50 border-b border-green-900 mb-1 pb-1">TERMINAL OUTPUT</div>
-            {logs.map((l, i) => <div key={i}>{l}</div>)}
-            <div ref={logEndRef} />
-        </div>
-    </div>
-    );
-    } else if (language === LANGUAGES.C || language === LANGUAGES.CPP) {
-    return (
-    <div className="relative h-full bg-[#151515] p-2 font-mono flex flex-col">
-        <div
-            className="flex-1 grid grid-cols-8 grid-rows-6 gap-1 mb-2 bg-slate-900 p-1 rounded border border-slate-800">
-            {Array.from({ length: 48 }).map((_, i) => {
-            const isHero = i === heroPos.y*8 + heroPos.x;
-            return (
-            <div key={i} className={`rounded-sm transition-all duration-200 border border-white/5 ${isHero
-                ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] scale-90' : 'bg-slate-800/50' }`}></div>
-            )
-            })}
-        </div>
-        <div className="h-24 text-[10px] text-slate-400 border-t border-slate-800 pt-2">
-            {logs.map((l, i) => <div key={i}>{l}</div>)}
-            <div ref={logEndRef} />
-        </div>
-
-        {/* 컨트롤러 표시 (항상 보임) */}
-        {isInteractive && (
-        <div
-            className="absolute bottom-28 right-4 grid grid-cols-3 gap-1 z-10 bg-black/50 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-            <div />
-            <button
-                className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all"
-                onClick={()=>moveHero('U')}>
-                <ArrowUp size={16} />
-            </button>
-            <div />
-            <button
-                className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all"
-                onClick={()=>moveHero('L')}>
-                <ArrowLeft size={16} />
-            </button>
-            <button
-                className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all"
-                onClick={()=>moveHero('D')}>
-                <ArrowDown size={16} />
-            </button>
-            <button
-                className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all"
-                onClick={()=>moveHero('R')}>
-                <ArrowRight size={16} />
-            </button>
-        </div>
-        )}
-        {isInteractive && <div className="absolute top-4 right-4 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
-            Interactive Mode</div>}
-    </div>
-    );
-    } else {
-    // C#
-    return (
-    <div className="h-full bg-slate-800 p-4 flex flex-col gap-4">
-        <div
-            className="bg-slate-200 rounded-lg h-48 flex items-center justify-center relative shadow-inner overflow-hidden border-4 border-slate-300">
-            {/* 윈도우 UI 장식 */}
-            <div className="absolute top-0 left-0 w-full h-6 bg-blue-900 flex items-center px-2 gap-1">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span className="text-[10px] text-white ml-2">LoginApp.exe</span>
-            </div>
-
-            {loginState === 'success' ? (
-            <div className="text-center animate-in zoom-in duration-300">
-                <User className="text-blue-600 w-12 h-12 mx-auto mb-2" />
-                <div className="text-slate-800 font-bold">Welcome!</div>
-                {isInteractive && <button onClick={resetLogin}
-                    className="text-xs text-blue-500 underline mt-2">Logout</button>}
-            </div>
-            ) : (
-            <div className="flex flex-col items-center gap-2 w-2/3">
-                <div className="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center mb-1">
-                    <User className="text-slate-500" size={24} />
-                </div>
-                <div
-                    className="w-full h-6 bg-white border border-slate-300 rounded px-2 text-xs flex items-center text-slate-400">
-                    Username...</div>
-                <div
-                    className="w-full h-6 bg-white border border-slate-300 rounded px-2 text-xs flex items-center text-slate-400">
-                    Password...</div>
-                <button onClick={tryLogin} disabled={!isInteractive} className={`mt-1 px-4 py-1 bg-blue-600 text-white
-                    text-xs rounded shadow hover:bg-blue-500 transition-all ${loginState==='processing' ? 'opacity-50'
-                    : '' }`}>
-                    {loginState === 'processing' ? 'Connecting...' : 'Login'}
-                </button>
-            </div>
-            )}
-        </div>
-        <div
-            className="flex-1 bg-black text-[10px] text-blue-300 font-mono p-2 overflow-hidden rounded border border-slate-700">
-            <div className="border-b border-slate-800 mb-1 pb-1 text-slate-500">DEBUG CONSOLE</div>
-            {logs.map((l, i) => <div key={i}>{l}</div>)}
-            <div ref={logEndRef} />
-        </div>
-    </div>
-    );
-    }
-    };
-
-    return (
-    <div className="w-full h-full bg-slate-900 border-l border-slate-800 flex flex-col relative shadow-xl z-20">
-        <div
-            className="bg-slate-950 text-xs p-2 border-b border-slate-800 flex justify-between items-center text-slate-300">
-            <div className="flex items-center gap-2">
-                <Monitor size={14} className="text-blue-400" />
-                <span className="font-bold">LIVE PREVIEW: {language || "WAITING..."}</span>
-            </div>
-            {isInteractive ? (
-            <span
-                className="flex items-center gap-1 text-green-400 animate-pulse font-bold bg-green-400/10 px-2 py-0.5 rounded-full text-[10px]">
-                <Activity size={10} /> INTERACTIVE
-            </span>
-            ) : (
-            <span className="text-slate-600 text-[10px]">BUILDING...</span>
-            )}
-        </div>
-        <div className="flex-1 overflow-hidden relative bg-slate-900">
-            {language ? renderPreviewContent() : (
-            <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
-                <Code2 size={48} className="opacity-20" />
-                <span className="text-xs">Select a language to start build</span>
-            </div>
-            )}
-        </div>
-    </div>
-    );
-    };
-
-    // --- 게임 동작 로직 ---
-    const startGame = () => {
-    if (!selectedLanguage) return;
-    setScore(0);
-    setLives(3);
-    setCurrentQIndex(0);
-    setDisplayCode([]);
-    setGameState('playing');
-    triggerTypingEffect(selectedLanguage, 0);
-    };
-
-    const triggerTypingEffect = (lang, qIndex) => {
-    setTyping(true);
-    let lines = [];
-    let count = 0;
-    const maxLines = 5;
-
-    const interval = setInterval(() => {
-    const randomLine = FILLER_CODE[Math.floor(Math.random() * FILLER_CODE.length)];
-    lines = [...lines, { text: randomLine, type: 'filler' }];
-    setDisplayCode([...lines]);
-    if (codeEndRef.current) codeEndRef.current.scrollIntoView({ behavior: 'smooth' });
-
-    count++;
-    if (count >= maxLines) {
-    clearInterval(interval);
-    setTimeout(() => {
-    showQuestion(lang, qIndex, lines);
-    }, 300);
-    }
-    }, 50);
-    };
-
-    const showQuestion = (lang, qIndex, currentLines) => {
-    const q = QUESTIONS_SOURCE[lang][qIndex];
-    if (!q) { endGame(true); return; }
-
-    setTyping(false);
-    setUserAnswer("");
-
-    const questionLines = [
-    { text: `// ${q.context}`, type: 'comment' },
-    { text: q.preCode, gap: q.gap, postCode: q.postCode, type: 'question' }
-    ];
-    setDisplayCode([...currentLines, ...questionLines]);
-    if (codeEndRef.current) codeEndRef.current.scrollIntoView({ behavior: 'smooth' });
-
-    if (difficulty === 'hardcore') {
-    setTimeout(() => inputRef.current?.focus(), 100);
-    }
-    };
-
-    const handleAnswer = (answer) => {
-    const q = QUESTIONS_SOURCE[selectedLanguage][currentQIndex];
-    const isCorrect = answer.trim() === q.answer;
-
-    if (isCorrect) {
-    setScore(s => s + 100);
-    setFeedback({ correct: true, msg: "OK" });
-    } else {
-    setLives(l => l - 1);
-    setScore(s => Math.max(0, s - 50));
-    setFeedback({ correct: false, msg: `Error.` });
-    }
-    setGameState('feedback');
-    };
-
-    const nextQuestion = () => {
-    if (lives <= 0) { endGame(false); return; } const nextIdx=currentQIndex + 1; if (nextIdx>=
-        QUESTIONS_SOURCE[selectedLanguage].length) { endGame(true); return; }
-
-        setCurrentQIndex(nextIdx);
-        setFeedback(null);
-        setGameState('playing');
-        triggerTypingEffect(selectedLanguage, nextIdx);
+        // --- ICONS (Lucide React 대체용 SVG 컴포넌트) ---
+        const Icons = {
+            Terminal: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
+            Play: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+            RotateCcw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+            CheckCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            XCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
+            Code2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>,
+            Cpu: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>,
+            Trophy: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+            Activity: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+            Monitor: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>,
+            RefreshCw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+            User: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            ArrowUp: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>,
+            ArrowDown: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>,
+            ArrowLeft: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            ArrowRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         };
 
-        const retryQuestion = () => {
-        if (lives <= 0) { endGame(false); return; } setFeedback(null); setGameState('playing'); setUserAnswer(""); if
-            (difficulty==='hardcore' ) setTimeout(()=> inputRef.current?.focus(), 100);
+        const { 
+            Terminal, Play, RotateCcw, CheckCircle, XCircle, 
+            Code2, Cpu, Trophy, Activity, Monitor, RefreshCw, 
+            User, Keyboard, ChevronRight, ArrowUp, ArrowDown, ArrowLeft, ArrowRight 
+        } = Icons;
+
+
+        // --- MAIN COMPONENT ---
+        const CodeRushRemastered = () => {
+          // --- 상태 관리 ---
+          const [gameState, setGameState] = useState('menu'); // menu, playing, feedback, gameover
+          const [difficulty, setDifficulty] = useState('beginner'); // 'beginner' | 'hardcore'
+          const [selectedLanguage, setSelectedLanguage] = useState(null); // 'Python', 'C', 'C#', 'C++'
+          
+          const [score, setScore] = useState(0);
+          const [lives, setLives] = useState(3);
+          const [currentQIndex, setCurrentQIndex] = useState(0);
+          const [displayCode, setDisplayCode] = useState([]);
+          const [typing, setTyping] = useState(false);
+          const [feedback, setFeedback] = useState(null);
+          
+          const [userAnswer, setUserAnswer] = useState(""); 
+          const codeEndRef = useRef(null);
+          const inputRef = useRef(null);
+
+          // --- 데이터셋 ---
+          const LANGUAGES = {
+            PYTHON: 'Python',
+            C: 'C',
+            CSHARP: 'C#',
+            CPP: 'C++'
+          };
+
+          const QUESTIONS_SOURCE = {
+            [LANGUAGES.PYTHON]: [
+                { context: "Step 1: 데이터 분석 라이브러리 로드", preCode: "", gap: "import", postCode: " pandas as pd\nimport math", options: ["include", "using", "import", "require"], answer: "import", explanation: "라이브러리를 사용할 때는 import 키워드를 씁니다." },
+                { context: "Step 2: 데이터셋 파일 열기", preCode: "with ", gap: "open", postCode: "(\"dataset.csv\", \"r\") as f:\n    raw_data = f.readlines()", options: ["file", "load", "open", "read"], answer: "open", explanation: "파일을 안전하게 열 때는 with open(...) 패턴을 사용합니다." },
+                { context: "Step 3: 데이터 파싱 (문자열 분리)", preCode: "header = raw_data[0].strip().", gap: "split", postCode: "(\",\")", options: ["slice", "divide", "split", "cut"], answer: "split", explanation: "CSV 데이터를 쉼표 기준으로 나누려면 split을 사용합니다." },
+                { context: "Step 4: AI 모델 클래스 정의", preCode: "class AIModel:\n    def ", gap: "__init__", postCode: "(self, learning_rate):\n        self.lr = learning_rate", options: ["__main__", "__init__", "start", "__new__"], answer: "__init__", explanation: "클래스의 초기화 메서드는 __init__입니다." },
+                { context: "Step 5: 학습 메서드 정의", preCode: "    ", gap: "def", postCode: " train(self, data):\n        print(\"Training started...\")", options: ["function", "def", "func", "void"], answer: "def", explanation: "함수(메서드) 정의는 def로 시작합니다." },
+                { context: "Step 6: 학습 루프 (에포크 반복)", preCode: "        epochs = 10\n        for i in ", gap: "range", postCode: "(epochs):\n            self.optimize()", options: ["loop", "range", "xrange", "list"], answer: "range", explanation: "지정된 횟수만큼 반복하려면 range를 사용합니다." },
+                { context: "Step 7: 손실값 기록 (리스트 추가)", preCode: "        history = []\n        history.", gap: "append", postCode: "(current_loss)", options: ["push", "add", "insert", "append"], answer: "append", explanation: "리스트에 값을 추가할 때는 append를 사용합니다." },
+                { context: "Step 8: 학습 중단 조건 확인", preCode: "            ", gap: "if", postCode: " current_loss < 0.01:\n                break", options: ["when", "check", "if", "case"], answer: "if", explanation: "조건을 검사할 때는 if문을 사용합니다." },
+                { context: "Step 9: 예외 처리 (0으로 나누기 방지)", preCode: "        ", gap: "try", postCode: ":\n            accuracy = correct / total\n        except ZeroDivisionError:\n            accuracy = 0", options: ["try", "attempt", "do", "begin"], answer: "try", explanation: "에러가 발생할 수 있는 코드는 try 블록에 넣습니다." },
+                { context: "Step 10: 정확도 반올림", preCode: "        print(f\"Acc: {", gap: "round", postCode: "(accuracy, 4)}\")", options: ["ceil", "floor", "round", "fix"], answer: "round", explanation: "소수점을 정리할 때는 round 함수를 씁니다." },
+                { context: "Step 11: 람다 함수로 전처리", preCode: "normalize = ", gap: "lambda", postCode: " x: x / 255.0", options: ["func", "def", "lambda", "arrow"], answer: "lambda", explanation: "간단한 익명 함수는 lambda로 정의합니다." },
+                { context: "Step 12: 설정값 존재 확인", preCode: "config = {'batch': 32}\nif 'batch' ", gap: "in", postCode: " config:\n    print(\"Batch size set\")", options: ["has", "in", "exists", "contains"], answer: "in", explanation: "딕셔너리 키 존재 여부는 in 연산자로 확인합니다." },
+                { context: "Step 13: 데이터 검증 (모두 통과?)", preCode: "validations = [True, True, True]\nis_valid = ", gap: "all", postCode: "(validations)", options: ["every", "all", "check", "sum"], answer: "all", explanation: "모든 요소가 참인지 확인할 때는 all()을 사용합니다." },
+                { context: "Step 14: 데이터셋 크기 확인", preCode: "n_samples = ", gap: "len", postCode: "(raw_data)", options: ["length", "size", "count", "len"], answer: "len", explanation: "리스트나 문자열의 길이는 len()입니다." },
+                { context: "Step 15: 결과 출력 및 서버 시작", preCode: "print(\"System Ready\")\n", gap: "print", postCode: "(\"Server listening on port 8080...\")", options: ["printf", "echo", "print", "write"], answer: "print", explanation: "화면에 메시지를 출력할 때는 print를 사용합니다." }
+            ],
+            [LANGUAGES.C]: [
+                { context: "Step 1: 표준 입출력 헤더 포함", preCode: "#include <", gap: "stdio.h", postCode: ">", options: ["iostream", "stdio.h", "std.h", "io.h"], answer: "stdio.h", explanation: "C언어의 표준 입출력 함수들은 stdio.h에 있습니다." },
+                { context: "Step 2: 상수 정의 (맵 크기)", preCode: "#", gap: "define", postCode: " MAP_WIDTH 100", options: ["const", "define", "set", "var"], answer: "define", explanation: "매크로 상수는 #define으로 정의합니다." },
+                { context: "Step 3: 플레이어 구조체 정의", preCode: "", gap: "struct", postCode: " Player {\n    int x, y;\n    int hp;\n};", options: ["class", "struct", "type", "rec"], answer: "struct", explanation: "데이터를 묶을 때는 구조체(struct)를 사용합니다." },
+                { context: "Step 4: 게임 맵 메모리 할당", preCode: "int *map = (int*)", gap: "malloc", postCode: "(sizeof(int) * MAP_WIDTH);", options: ["new", "alloc", "malloc", "mem"], answer: "malloc", explanation: "동적 메모리 할당은 malloc 함수를 사용합니다." },
+                { context: "Step 5: 메모리 할당 실패 확인", preCode: "if (map == ", gap: "NULL", postCode: ") {\n    return -1;\n}", options: ["nil", "null", "NULL", "0"], answer: "NULL", explanation: "포인터가 비었음을 확인할 때는 NULL 매크로를 씁니다." },
+                { context: "Step 6: 플레이어 이름 복사", preCode: "char name[20];\n", gap: "strcpy", postCode: "(name, \"Hero\");", options: ["strcopy", "cpystr", "strcpy", "move"], answer: "strcpy", explanation: "문자열 대입(복사)은 strcpy 함수를 사용합니다." },
+                { context: "Step 7: 구조체 크기 확인", preCode: "int p_size = ", gap: "sizeof", postCode: "(struct Player);", options: ["len", "size", "sizeof", "width"], answer: "sizeof", explanation: "타입의 바이트 크기는 sizeof로 구합니다." },
+                { context: "Step 8: 포인터로 초기값 설정", preCode: "struct Player p;\nstruct Player *ptr = ", gap: "&", postCode: "p;\nptr->hp = 100;", options: ["*", "&", "@", "#"], answer: "&", explanation: "변수의 주소값은 & 연산자로 가져옵니다." },
+                { context: "Step 9: 메인 게임 루프 시작", preCode: "int running = 1;\n", gap: "while", postCode: "(running) {\n    update_game();\n}", options: ["for", "loop", "until", "while"], answer: "while", explanation: "조건이 참인 동안 반복하려면 while문을 씁니다." },
+                { context: "Step 10: 사용자 입력 처리 (포인터)", preCode: "int input;\nscanf(\"%d\", ", gap: "&", postCode: "input);", options: ["*", "&", "$", "ptr"], answer: "&", explanation: "scanf에는 변수의 주소(&)를 넘겨주어야 합니다." },
+                { context: "Step 11: 입력에 따른 분기", preCode: "switch(input) {\n    ", gap: "case", postCode: " 1: move_up(); break;\n}", options: ["when", "if", "case", "option"], answer: "case", explanation: "switch문 내부의 조건 분기는 case를 사용합니다." },
+                { context: "Step 12: 데미지 처리 (역참조)", preCode: "void hit(int *hp) {\n    ", gap: "*", postCode: "hp -= 10;\n}", options: ["&", "*", "->", "."], answer: "*", explanation: "포인터가 가리키는 값을 수정하려면 * 연산자를 씁니다." },
+                { context: "Step 13: 명령어 문자열 비교", preCode: "if (", gap: "strcmp", postCode: "(cmd, \"quit\") == 0) running = 0;", options: ["strequal", "strcmp", "compare", "eq"], answer: "strcmp", explanation: "두 문자열이 같은지 비교할 때는 strcmp를 사용합니다." },
+                { context: "Step 14: 상태 정보 출력", preCode: "", gap: "printf", postCode: "(\"HP: %d\\n\", p.hp);", options: ["print", "cout", "printf", "log"], answer: "printf", explanation: "형식화된 출력은 printf를 사용합니다." },
+                { context: "Step 15: 종료 및 값 반환", preCode: "free(map);\n", gap: "return", postCode: " 0;", options: ["exit", "back", "return", "out"], answer: "return", explanation: "함수를 종료하고 값을 반환할 때는 return을 씁니다." }
+            ],
+            [LANGUAGES.CSHARP]: [
+                { context: "Step 1: 시스템 라이브러리 사용", preCode: "", gap: "using", postCode: " System;\nusing System.Windows.Forms;", options: ["import", "include", "using", "from"], answer: "using", explanation: "네임스페이스를 가져올 때는 using을 사용합니다." },
+                { context: "Step 2: 네임스페이스 선언", preCode: "", gap: "namespace", postCode: " MyApp {\n    // ...\n}", options: ["package", "module", "namespace", "region"], answer: "namespace", explanation: "코드를 그룹화하는 네임스페이스를 선언합니다." },
+                { context: "Step 3: 폼 클래스 상속", preCode: "public class LoginForm ", gap: ":", postCode: " Form {\n    // Form Logic\n}", options: ["extends", ":", "implements", "->"], answer: ":", explanation: "C#에서 상속은 콜론(:)을 사용합니다." },
+                { context: "Step 4: 상수 타이틀 정의", preCode: "    ", gap: "const", postCode: " string TITLE = \"Login App\";", options: ["final", "static", "const", "readonly"], answer: "const", explanation: "변하지 않는 값은 const로 선언합니다." },
+                { context: "Step 5: 연결 상태 열거형 정의", preCode: "    public ", gap: "enum", postCode: " State { Disconnected, Connected }", options: ["type", "enum", "list", "option"], answer: "enum", explanation: "상태 목록을 정의할 때는 enum을 사용합니다." },
+                { context: "Step 6: 유저명 프로퍼티 (Getter/Setter)", preCode: "    public string Username { get; ", gap: "set", postCode: "; }", options: ["put", "set", "let", "init"], answer: "set", explanation: "프로퍼티의 값을 설정하는 접근자는 set입니다." },
+                { context: "Step 7: 인증 인터페이스 정의", preCode: "    public ", gap: "interface", postCode: " IAuthenticator {\n        bool Validate(string u);\n    }", options: ["class", "struct", "interface", "protocol"], answer: "interface", explanation: "기능의 명세는 interface로 정의합니다." },
+                { context: "Step 8: 생성자 및 부모 초기화", preCode: "    public LoginForm() ", gap: ":", postCode: " base() {\n        InitializeComponent();\n    }", options: ["super", "parent", "base", "root"], answer: ":", explanation: "생성자에서 부모 생성자를 호출할 때는 : base()를 씁니다." },
+                { context: "Step 9: UI 버튼 객체 생성", preCode: "    Button btn = ", gap: "new", postCode: " Button();", options: ["alloc", "create", "new", "make"], answer: "new", explanation: "객체(인스턴스)를 생성할 때는 new 키워드를 씁니다." },
+                { context: "Step 10: 비동기 로그인 메서드", preCode: "    public ", gap: "async", postCode: " void OnLoginClick(object s, EventArgs e)", options: ["await", "async", "sync", "void"], answer: "async", explanation: "비동기 메서드를 선언할 때는 async 키워드를 붙입니다." },
+                { context: "Step 11: 타입 추론 변수 선언", preCode: "        ", gap: "var", postCode: " db = new DatabaseConnection();", options: ["let", "auto", "var", "dim"], answer: "var", explanation: "우변에서 타입을 알 수 있을 때 var를 사용합니다." },
+                { context: "Step 12: 환영 메시지 (문자열 보간)", preCode: "        string msg = ", gap: "$", postCode: "\"Welcome, {Username}!\";", options: ["@", "$", "#", "%"], answer: "$", explanation: "문자열 내 변수를 쓰려면 $를 앞에 붙입니다." },
+                { context: "Step 13: 널 조건부 연산자", preCode: "        int? len = Username", gap: "?.", postCode: "Length;", options: [".", "?.", "!!", "??"], answer: "?.", explanation: "객체가 null일 수 있을 때 안전하게 접근하려면 ?.를 씁니다." },
+                { context: "Step 14: 데이터 필터링 (LINQ)", preCode: "        var admins = users.", gap: "Where", postCode: "(u => u.IsAdmin);", options: ["Filter", "Select", "Where", "Find"], answer: "Where", explanation: "조건에 맞는 요소를 찾을 때는 LINQ의 Where를 씁니다." },
+                { context: "Step 15: 디버그 로그 출력", preCode: "        ", gap: "Console.WriteLine", postCode: "(\"Login Sequence Complete\");", options: ["print", "Console.WriteLine", "Debug.Log", "System.out"], answer: "Console.WriteLine", explanation: "콘솔에 내용을 출력할 때는 Console.WriteLine을 사용합니다." }
+            ],
+            [LANGUAGES.CPP]: [
+                { context: "Step 1: 입출력 스트림 포함", preCode: "#include <", gap: "iostream", postCode: ">", options: ["stdio.h", "iostream", "string", "vector"], answer: "iostream", explanation: "C++ 입출력은 iostream 헤더를 사용합니다." },
+                { context: "Step 2: 표준 네임스페이스 사용", preCode: "using namespace ", gap: "std", postCode: ";", options: ["cpp", "std", "stl", "core"], answer: "std", explanation: "표준 라이브러리는 std 네임스페이스 안에 있습니다." },
+                { context: "Step 3: 좌표 템플릿 정의 (제네릭)", preCode: "", gap: "template", postCode: " <typename T>\nstruct Vec2 { T x, y; };", options: ["generic", "template", "class", "meta"], answer: "template", explanation: "다양한 타입에 대응하는 구조체는 template으로 만듭니다." },
+                { context: "Step 4: 게임 엔티티 클래스", preCode: "class Entity {\npublic:\n    ", gap: "virtual", postCode: " void Update() = 0;", options: ["static", "virtual", "inline", "friend"], answer: "virtual", explanation: "자식 클래스에서 오버라이드할 함수는 virtual로 선언합니다." },
+                { context: "Step 5: 플레이어 상속", preCode: "class Player : ", gap: "public", postCode: " Entity {\n    // ...\n};", options: ["extends", "public", "virtual", "super"], answer: "public", explanation: "일반적인 상속 접근 지정자는 public입니다." },
+                { context: "Step 6: 정적 멤버 (적 카운트)", preCode: "    ", gap: "static", postCode: " int enemyCount;", options: ["const", "global", "static", "shared"], answer: "static", explanation: "모든 인스턴스가 공유하는 변수는 static입니다." },
+                { context: "Step 7: 엔티티 목록 (벡터)", preCode: "#include <vector>\n", gap: "vector", postCode: "<Entity*> entities;", options: ["list", "array", "vector", "deque"], answer: "vector", explanation: "크기가 변하는 배열은 std::vector를 사용합니다." },
+                { context: "Step 8: 스마트 포인터 사용", preCode: "#include <memory>\nstd::", gap: "unique_ptr", postCode: "<Player> p = std::make_unique<Player>();", options: ["auto_ptr", "unique_ptr", "smart_ptr", "weak_ptr"], answer: "unique_ptr", explanation: "자동으로 메모리를 해제해주는 스마트 포인터입니다." },
+                { context: "Step 9: 자동 타입 추론 반복", preCode: "for (", gap: "auto", postCode: " e : entities) {\n    e->Update();\n}", options: ["var", "let", "auto", "int"], answer: "auto", explanation: "타입을 컴파일러가 알아서 추론하게 하려면 auto를 씁니다." },
+                { context: "Step 10: 범위 기반 for문", preCode: "for (int id ", gap: ":", postCode: " activeIds) {\n    // process\n}", options: ["in", ":", "of", "from"], answer: ":", explanation: "컨테이너의 모든 요소를 순회할 때 콜론(:)을 씁니다." },
+                { context: "Step 11: 참조자에 의한 전달", preCode: "void Move(Vec2<int>", gap: "&", postCode: " pos) {\n    this->pos = pos;\n}", options: ["*", "&", "ref", "%"], answer: "&", explanation: "복사 비용을 줄이기 위해 참조자(&)를 사용합니다." },
+                { context: "Step 12: 멤버 접근 화살표", preCode: "Entity* e = new Player();\ne", gap: "->", postCode: "Update();", options: [".", "->", "::", ":"], answer: "->", explanation: "포인터로 객체 멤버에 접근할 때는 -> 연산자를 씁니다." },
+                { context: "Step 13: 사용자 입력 받기", preCode: "char key;\n", gap: "cin", postCode: " >> key;", options: ["cout", "scan", "cin", "get"], answer: "cin", explanation: "C++ 표준 입력 스트림은 cin입니다." },
+                { context: "Step 14: 화면 출력", preCode: "", gap: "cout", postCode: " << \"Game Over\" << endl;", options: ["cin", "print", "cout", "out"], answer: "cout", explanation: "C++ 표준 출력 스트림은 cout입니다." },
+                { context: "Step 15: 소멸자 정의 (메모리 해제)", preCode: "    ", gap: "~", postCode: "Player() {\n        cout << \"Destroyed\";\n    }", options: ["-", "!", "~", "#"], answer: "~", explanation: "객체가 파괴될 때 호출되는 소멸자는 ~로 시작합니다." }
+            ]
+          };
+
+          const FILLER_CODE = [
+            "import sys; sys.setrecursionlimit(1000)",
+            "void* memory = malloc(1024 * 1024);",
+            "public static void Main(string[] args) {",
+            "template <typename T> class Matrix {",
+            "while(true) { process_event(e); }",
+            "if (buffer_overflow) return -1;",
+            "try { connect_to_server(); } catch(e) {}",
+            "const int MAX_USERS = 5000;",
+            "// Optimization needed here",
+            "return this->value * 0.5f;",
+            "await db.SaveChangesAsync();",
+            "std::map<string, int> cache;",
+            "for(auto it = begin; it != end; ++it)",
+            "// TODO: Refactor this mess",
+            "docker build -t myapp .",
+            "git commit -m 'wip'",
+            "npm install react-dom"
+          ];
+
+          // --- 프리뷰 컴포넌트 ---
+          const ProjectPreview = ({ language, progress, isInteractive }) => {
+            const [logs, setLogs] = useState([]);
+            const logEndRef = useRef(null);
+            const [heroPos, setHeroPos] = useState({ x: 2, y: 3 });
+            const [pyData, setPyData] = useState([40, 70, 50, 90]);
+            const [loginState, setLoginState] = useState('form');
+
+            useEffect(() => {
+                if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }, [logs]);
+
+            useEffect(() => {
+                const step = Math.floor(progress / (100/15)); 
+                if (step > 0) {
+                    let newLog = "";
+                    if (language === LANGUAGES.PYTHON) newLog = `> [Step ${step}] Executing cell: model.train()`;
+                    else if (language === LANGUAGES.C) newLog = `> [0x${(4000 + step*16).toString(16)}] ALLOCATING MEMORY... OK`;
+                    else if (language === LANGUAGES.CSHARP) newLog = `> [Debug] Building Form Component (${step}/15)`;
+                    else if (language === LANGUAGES.CPP) newLog = `> [EntitySystem] Linking Object ID: ${step}`;
+                    
+                    setLogs(prev => {
+                        const last = prev[prev.length-1];
+                        if (last !== newLog) return [...prev, newLog].slice(-6);
+                        return prev;
+                    });
+                }
+            }, [progress, language]);
+
+            // INTERACTION
+            const moveHero = (dir) => { 
+                if (!isInteractive) return; 
+                let {x, y} = heroPos;
+                if(dir==='L') x = Math.max(0, x-1); if(dir==='R') x = Math.min(7, x+1);
+                if(dir==='U') y = Math.max(0, y-1); if(dir==='D') y = Math.min(5, y+1);
+                setHeroPos({x, y});
             };
 
-            const endGame = (success) => {
+            const refreshPython = () => { 
+                if (!isInteractive) return; 
+                setPyData(Array.from({length: 4}, () => Math.floor(Math.random() * 80) + 20)); 
+            };
+
+            const tryLogin = () => { 
+                if (!isInteractive) return; 
+                setLoginState('processing'); 
+                setTimeout(() => setLoginState('success'), 1000); 
+            };
+
+            const resetLogin = () => {
+                setLoginState('form');
+            }
+
+            const renderPreviewContent = () => {
+                if (language === LANGUAGES.PYTHON) {
+                    return (
+                         <div className="flex flex-col h-full gap-2 p-2">
+                            <div className="bg-slate-800 rounded p-4 flex-1 flex items-end justify-around relative cursor-pointer border border-slate-700 hover:border-blue-500 transition-all" onClick={refreshPython}>
+                                {pyData.map((h, i) => <div key={i} style={{ height: `${h}%` }} className="w-8 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t transition-all duration-500"></div>)}
+                                {isInteractive && (
+                                    <div className="absolute top-2 right-2 text-xs text-slate-500 flex items-center gap-1 bg-slate-900/80 px-2 py-1 rounded">
+                                        <RefreshCw size={12} /> Click to Refresh
+                                    </div>
+                                )}
+                            </div>
+                            <div className="h-32 text-[10px] text-green-400 font-mono bg-black p-2 rounded overflow-hidden border border-slate-800">
+                                <div className="opacity-50 border-b border-green-900 mb-1 pb-1">TERMINAL OUTPUT</div>
+                                {logs.map((l, i) => <div key={i}>{l}</div>)}
+                                <div ref={logEndRef} />
+                            </div>
+                         </div>
+                    );
+                } else if (language === LANGUAGES.C || language === LANGUAGES.CPP) {
+                     return (
+                        <div className="relative h-full bg-[#151515] p-2 font-mono flex flex-col">
+                             <div className="flex-1 grid grid-cols-8 grid-rows-6 gap-1 mb-2 bg-slate-900 p-1 rounded border border-slate-800">
+                                {Array.from({ length: 48 }).map((_, i) => {
+                                    const isHero = i === heroPos.y*8 + heroPos.x;
+                                    return (
+                                        <div key={i} className={`rounded-sm transition-all duration-200 border border-white/5 ${isHero ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] scale-90' : 'bg-slate-800/50'}`}></div>
+                                    )
+                                })}
+                             </div>
+                             <div className="h-24 text-[10px] text-slate-400 border-t border-slate-800 pt-2">
+                                {logs.map((l, i) => <div key={i}>{l}</div>)}
+                                <div ref={logEndRef} />
+                             </div>
+                             
+                             {isInteractive && (
+                                <div className="absolute bottom-28 right-4 grid grid-cols-3 gap-1 z-10 bg-black/50 p-2 rounded-xl backdrop-blur-sm border border-white/10">
+                                    <div/> 
+                                    <button className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all" onClick={()=>moveHero('U')}><ArrowUp size={16}/></button> 
+                                    <div/>
+                                    <button className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all" onClick={()=>moveHero('L')}><ArrowLeft size={16}/></button>
+                                    <button className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all" onClick={()=>moveHero('D')}><ArrowDown size={16}/></button>
+                                    <button className="bg-slate-700 hover:bg-blue-600 active:scale-95 w-8 h-8 rounded flex items-center justify-center text-white transition-all" onClick={()=>moveHero('R')}><ArrowRight size={16}/></button>
+                                </div>
+                             )}
+                             {isInteractive && <div className="absolute top-4 right-4 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">Interactive Mode</div>}
+                        </div>
+                     );
+                } else {
+                    // C#
+                    return (
+                        <div className="h-full bg-slate-800 p-4 flex flex-col gap-4">
+                            <div className="bg-slate-200 rounded-lg h-48 flex items-center justify-center relative shadow-inner overflow-hidden border-4 border-slate-300">
+                                <div className="absolute top-0 left-0 w-full h-6 bg-blue-900 flex items-center px-2 gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <span className="text-[10px] text-white ml-2">LoginApp.exe</span>
+                                </div>
+
+                                {loginState === 'success' ? (
+                                    <div className="text-center animate-zoom-in">
+                                        <User className="text-blue-600 w-12 h-12 mx-auto mb-2"/>
+                                        <div className="text-slate-800 font-bold">Welcome!</div>
+                                        {isInteractive && <button onClick={resetLogin} className="text-xs text-blue-500 underline mt-2">Logout</button>}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 w-2/3">
+                                        <div className="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center mb-1">
+                                            <User className="text-slate-500" size={24}/>
+                                        </div>
+                                        <div className="w-full h-6 bg-white border border-slate-300 rounded px-2 text-xs flex items-center text-slate-400">Username...</div>
+                                        <div className="w-full h-6 bg-white border border-slate-300 rounded px-2 text-xs flex items-center text-slate-400">Password...</div>
+                                        <button 
+                                            onClick={tryLogin}
+                                            disabled={!isInteractive}
+                                            className={`mt-1 px-4 py-1 bg-blue-600 text-white text-xs rounded shadow hover:bg-blue-500 transition-all ${loginState === 'processing' ? 'opacity-50' : ''}`}
+                                        >
+                                            {loginState === 'processing' ? 'Connecting...' : 'Login'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                             <div className="flex-1 bg-black text-[10px] text-blue-300 font-mono p-2 overflow-hidden rounded border border-slate-700">
+                                <div className="border-b border-slate-800 mb-1 pb-1 text-slate-500">DEBUG CONSOLE</div>
+                                {logs.map((l, i) => <div key={i}>{l}</div>)}
+                                <div ref={logEndRef} />
+                             </div>
+                        </div>
+                    );
+                }
+            };
+
+            return (
+                <div className="w-full h-full bg-slate-900 border-l border-slate-800 flex flex-col relative shadow-xl z-20">
+                    <div className="bg-slate-950 text-xs p-2 border-b border-slate-800 flex justify-between items-center text-slate-300">
+                         <div className="flex items-center gap-2">
+                            <Monitor size={14} className="text-blue-400" />
+                            <span className="font-bold">LIVE PREVIEW: {language || "WAITING..."}</span>
+                         </div>
+                         {isInteractive ? (
+                            <span className="flex items-center gap-1 text-green-400 animate-pulse font-bold bg-green-400/10 px-2 py-0.5 rounded-full text-[10px]">
+                                <Activity size={10} /> INTERACTIVE
+                            </span>
+                         ) : (
+                            <span className="text-slate-600 text-[10px]">BUILDING...</span>
+                         )}
+                    </div>
+                    <div className="flex-1 overflow-hidden relative bg-slate-900">
+                        {language ? renderPreviewContent() : (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
+                                <Code2 size={48} className="opacity-20" />
+                                <span className="text-xs">Select a language to start build</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+          };
+
+          // --- 게임 로직 ---
+          const startGame = () => {
+            if (!selectedLanguage) return;
+            setScore(0);
+            setLives(3);
+            setCurrentQIndex(0);
+            setDisplayCode([]);
+            setGameState('playing');
+            triggerTypingEffect(selectedLanguage, 0);
+          };
+
+          const triggerTypingEffect = (lang, qIndex) => {
+            setTyping(true);
+            let lines = [];
+            let count = 0;
+            const maxLines = 5;
+
+            const interval = setInterval(() => {
+                const randomLine = FILLER_CODE[Math.floor(Math.random() * FILLER_CODE.length)];
+                lines = [...lines, { text: randomLine, type: 'filler' }];
+                setDisplayCode([...lines]);
+                if (codeEndRef.current) codeEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                
+                count++;
+                if (count >= maxLines) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        showQuestion(lang, qIndex, lines);
+                    }, 300);
+                }
+            }, 50);
+          };
+
+          const showQuestion = (lang, qIndex, currentLines) => {
+            const q = QUESTIONS_SOURCE[lang][qIndex];
+            if (!q) { endGame(true); return; }
+            
+            setTyping(false);
+            setUserAnswer("");
+            
+            const questionLines = [
+                { text: `// ${q.context}`, type: 'comment' },
+                { text: q.preCode, gap: q.gap, postCode: q.postCode, type: 'question' }
+            ];
+            setDisplayCode([...currentLines, ...questionLines]);
+            if (codeEndRef.current) codeEndRef.current.scrollIntoView({ behavior: 'smooth' });
+
+            if (difficulty === 'hardcore') {
+                setTimeout(() => inputRef.current?.focus(), 100);
+            }
+          };
+
+          const handleAnswer = (answer) => {
+            const q = QUESTIONS_SOURCE[selectedLanguage][currentQIndex];
+            const isCorrect = answer.trim() === q.answer;
+
+            if (isCorrect) {
+                setScore(s => s + 100);
+                setFeedback({ correct: true, msg: "OK" });
+            } else {
+                setLives(l => l - 1);
+                setScore(s => Math.max(0, s - 50));
+                setFeedback({ correct: false, msg: `Error.` }); 
+            }
+            setGameState('feedback');
+          };
+
+          const nextQuestion = () => {
+            if (lives <= 0) { endGame(false); return; }
+            const nextIdx = currentQIndex + 1;
+            if (nextIdx >= QUESTIONS_SOURCE[selectedLanguage].length) { endGame(true); return; }
+
+            setCurrentQIndex(nextIdx);
+            setFeedback(null);
+            setGameState('playing');
+            triggerTypingEffect(selectedLanguage, nextIdx);
+          };
+
+          const retryQuestion = () => {
+            if (lives <= 0) { endGame(false); return; }
+            setFeedback(null);
+            setGameState('playing');
+            setUserAnswer(""); 
+            if (difficulty === 'hardcore') setTimeout(() => inputRef.current?.focus(), 100);
+          };
+
+          const endGame = (success) => {
             setGameState('gameover');
-            };
+          };
 
-            const restartGame = () => {
+          const restartGame = () => {
             setGameState('menu');
             setFeedback(null);
             setDisplayCode([]);
-            };
+          };
 
-            // --- 메인 렌더링 ---
-            if (gameState === 'menu') {
+          // --- 화면 렌더링 ---
+          if (gameState === 'menu') {
             return (
-            <div
-                className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 font-sans">
-                <div
-                    className="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-700 text-center animate-in fade-in zoom-in duration-500">
-                    <div className="flex justify-center mb-6">
-                        <div className="bg-blue-600 p-4 rounded-full shadow-lg shadow-blue-500/50">
-                            <Code2 size={48} className="text-white" />
-                        </div>
+              <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 font-sans animate-fade-in">
+                <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-700 text-center">
+                  <div className="flex justify-center mb-6">
+                    <div className="bg-blue-600 p-4 rounded-full shadow-lg shadow-blue-500/50">
+                      <Code2 size={48} className="text-white" />
                     </div>
-                    <h1
-                        className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                        Code Rush
-                    </h1>
-                    <p className="text-slate-400 mb-8">Syntax Savior: 마스터가 되세요!</p>
-
-                    <div className="space-y-4 mb-8">
-                        <div className="flex items-center bg-slate-700/50 p-3 rounded-lg">
-                            <Terminal className="text-blue-400 mr-3" size={20} />
-                            <span className="text-sm">Python, C, C#, C++ 지원</span>
-                        </div>
-                        <div className="flex items-center bg-slate-700/50 p-3 rounded-lg">
-                            <Trophy className="text-yellow-400 mr-3" size={20} />
-                            <span className="text-sm">Quiz & Hardcore(Typing) 모드</span>
-                        </div>
+                  </div>
+                  <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Code Rush
+                  </h1>
+                  <p className="text-slate-400 mb-8">Syntax Savior: 마스터가 되세요!</p>
+                  
+                  <div className="space-y-4 mb-8">
+                    <div className="flex items-center bg-slate-700/50 p-3 rounded-lg">
+                      <Terminal className="text-blue-400 mr-3" size={20} />
+                      <span className="text-sm">Python, C, C#, C++ 지원</span>
                     </div>
-
-                    <div className="mb-4">
-                        <label
-                            className="text-xs uppercase text-slate-500 font-bold tracking-wider mb-2 block text-left">게임
-                            모드</label>
-                        <div className="flex gap-2">
-                            <button onClick={()=> setDifficulty('beginner')} className={`flex-1 py-2 text-sm rounded-md
-                                transition-all ${difficulty === 'beginner' ? 'bg-green-600 text-white shadow-lg
-                                shadow-green-500/30' : 'bg-slate-700 text-slate-400
-                                hover:bg-slate-600'}`}>Beginner</button>
-                            <button onClick={()=> setDifficulty('hardcore')} className={`flex-1 py-2 text-sm rounded-md
-                                transition-all ${difficulty === 'hardcore' ? 'bg-red-600 text-white shadow-lg
-                                shadow-red-500/30' : 'bg-slate-700 text-slate-400
-                                hover:bg-slate-600'}`}>Hardcore</button>
-                        </div>
+                    <div className="flex items-center bg-slate-700/50 p-3 rounded-lg">
+                      <Trophy className="text-yellow-400 mr-3" size={20} />
+                      <span className="text-sm">Quiz & Hardcore(Typing) 모드</span>
                     </div>
+                  </div>
 
-                    <div className="mb-6">
-                        <label
-                            className="text-xs uppercase text-slate-500 font-bold tracking-wider mb-2 block text-left">언어
-                            선택</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {Object.values(LANGUAGES).map(lang => (
-                            <button key={lang} onClick={()=> setSelectedLanguage(lang)}
-                                className={`py-2 text-sm rounded-md transition-all border border-transparent ${
-                                selectedLanguage === lang
-                                ? 'bg-blue-600 text-white border-blue-400 shadow-lg'
-                                : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:border-slate-500'
-                                }`}
-                                >
-                                {lang}
-                            </button>
-                            ))}
-                        </div>
+                  <div className="mb-4">
+                    <label className="text-xs uppercase text-slate-500 font-bold tracking-wider mb-2 block text-left">게임 모드</label>
+                    <div className="flex gap-2">
+                        <button onClick={() => setDifficulty('beginner')} className={`flex-1 py-2 text-sm rounded-md transition-all ${difficulty === 'beginner' ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}>Beginner</button>
+                        <button onClick={() => setDifficulty('hardcore')} className={`flex-1 py-2 text-sm rounded-md transition-all ${difficulty === 'hardcore' ? 'bg-red-600 text-white shadow-lg shadow-red-500/30' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}>Hardcore</button>
                     </div>
+                  </div>
 
-                    <button onClick={startGame} disabled={!selectedLanguage} className={`w-full font-bold py-4
-                        rounded-xl transition-all transform flex items-center justify-center gap-2 shadow-lg ${
-                        selectedLanguage
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-105 hover:from-blue-500 hover:to-purple-500 text-white'
-                        : 'bg-slate-700 text-slate-500 cursor-not-allowed' }`}>
-                        <Play size={20} fill="currentColor" />
-                        {selectedLanguage ? '게임 시작' : '언어를 선택하세요'}
-                    </button>
+                  <div className="mb-6">
+                    <label className="text-xs uppercase text-slate-500 font-bold tracking-wider mb-2 block text-left">언어 선택</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.values(LANGUAGES).map(lang => (
+                        <button
+                          key={lang}
+                          onClick={() => setSelectedLanguage(lang)}
+                          className={`py-2 text-sm rounded-md transition-all border border-transparent ${
+                            selectedLanguage === lang 
+                            ? 'bg-blue-600 text-white border-blue-400 shadow-lg' 
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:border-slate-500'
+                          }`}
+                        >
+                          {lang}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={startGame}
+                    disabled={!selectedLanguage}
+                    className={`w-full font-bold py-4 rounded-xl transition-all transform flex items-center justify-center gap-2 shadow-lg ${
+                        selectedLanguage 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-105 hover:from-blue-500 hover:to-purple-500 text-white' 
+                        : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <Play size={20} fill="currentColor" />
+                    {selectedLanguage ? '게임 시작' : '언어를 선택하세요'}
+                  </button>
                 </div>
-            </div>
+              </div>
             );
-            }
+          }
 
-            // --- 레이아웃: 분할 화면 (왼쪽: 게임/결과, 오른쪽: 프리뷰) ---
-            return (
+          return (
             <div className="min-h-screen bg-slate-950 text-white flex flex-col md:flex-row font-sans overflow-hidden">
                 {/* LEFT PANEL */}
-                <div
-                    className="flex-1 flex flex-col border-r border-slate-800 bg-[#1e1e1e] h-2/3 md:h-full relative transition-all duration-300">
+                <div className="flex-1 flex flex-col border-r border-slate-800 bg-[#1e1e1e] h-2/3 md:h-full relative transition-all duration-300">
                     {/* Header */}
-                    <div
-                        className="flex justify-between items-center p-3 bg-slate-900 border-b border-slate-800 text-xs font-mono select-none">
+                    <div className="flex justify-between items-center p-3 bg-slate-900 border-b border-slate-800 text-xs font-mono select-none">
                         <div className="flex items-center space-x-2">
                             <Cpu className="w-4 h-4 text-blue-400" />
                             <span className="font-bold text-slate-200">{selectedLanguage}</span>
                             <span className="text-slate-600">|</span>
-                            <span className={difficulty==='hardcore' ? 'text-red-500 font-bold'
-                                : 'text-green-500 font-bold' }>
+                            <span className={difficulty === 'hardcore' ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>
                                 {difficulty.toUpperCase()} MODE
                             </span>
                         </div>
@@ -575,168 +544,150 @@ options: ["push", "add", "insert", "append"], answer: "append", explanation: "�
 
                     {/* Content Area: Playing OR Result */}
                     {gameState === 'gameover' ? (
-                    // --- RESULT VIEW ---
-                    <div
-                        className="flex-1 flex flex-col items-center justify-center p-8 animate-in slide-in-from-left-4 fade-in duration-500">
-                        <Trophy size={80} className={`mb-6 drop-shadow-2xl ${lives> 0 ? 'text-yellow-400' :
-                            'text-slate-600'}`} />
-                            <h2 className="text-3xl font-black mb-2">{lives > 0 ? "BUILD COMPLETE!" : "BUILD FAILED"}
-                            </h2>
+                        // --- RESULT VIEW ---
+                        <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in">
+                            <Trophy size={80} className={`mb-6 drop-shadow-2xl ${lives > 0 ? 'text-yellow-400' : 'text-slate-600'}`} />
+                            <h2 className="text-3xl font-black mb-2">{lives > 0 ? "BUILD COMPLETE!" : "BUILD FAILED"}</h2>
                             <p className="text-slate-400 mb-8 text-center max-w-sm">
-                                {lives > 0 ? "축하합니다! 오른쪽 패널에서 당신이 만든 결과물을 확인하고 직접 테스트해보세요." : "코드에 버그가 너무 많습니다. 다시
-                                시도해보세요."}
+                                {lives > 0 ? "축하합니다! 오른쪽 패널에서 당신이 만든 결과물을 확인하고 직접 테스트해보세요." : "코드에 버그가 너무 많습니다. 다시 시도해보세요."}
                             </p>
-
-                            <div
-                                className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 w-full max-w-sm mb-8">
+                            
+                            <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 w-full max-w-sm mb-8">
                                 <div className="flex justify-between items-center mb-4">
                                     <span className="text-slate-400 text-sm">FINAL SCORE</span>
                                     <span className="text-4xl font-bold text-white">{score}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-slate-400 text-sm">STATUS</span>
-                                    <span className={`px-2 py-1 rounded text-xs font-bold ${lives> 0 ? 'bg-green-500/20
-                                        text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${lives > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                         {lives > 0 ? "STABLE" : "CRITICAL ERROR"}
                                     </span>
                                 </div>
                             </div>
 
-                            <button onClick={restartGame}
-                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl transition-all flex items-center gap-2 shadow-lg hover:scale-105">
+                            <button 
+                                onClick={restartGame}
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl transition-all flex items-center gap-2 shadow-lg hover:scale-105"
+                            >
                                 <RotateCcw size={18} />
                                 메인 메뉴로 이동
                             </button>
-                    </div>
+                        </div>
                     ) : (
-                    // --- PLAYING VIEW ---
-                    <>
-                        {/* Code Area */}
-                        <div className="flex-1 overflow-y-auto p-4 md:p-6 font-mono text-sm md:text-base leading-relaxed relative custom-scrollbar"
-                            onClick={()=> difficulty === 'hardcore' && inputRef.current?.focus()}>
-                            {displayCode.map((line, idx) => (
-                            <div key={idx} className={`${line.type==='filler' ? 'text-slate-600 opacity-40' : '' } mb-1
-                                whitespace-pre-wrap`}>
-                                {line.type === 'comment' && <span className="text-green-600 italic">{line.text}</span>}
-                                {line.type === 'question' ? (
-                                <div
-                                    className="flex flex-wrap items-center bg-slate-800/50 p-2 -mx-2 rounded border-l-2 border-blue-500 my-2">
-                                    <span className="text-blue-300">{line.text}</span>
-                                    {gameState === 'feedback' ? (
-                                    <span className={`px-2 rounded font-bold mx-1 ${feedback.correct
-                                        ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' }`}>
-                                        {feedback.correct ? line.gap : (difficulty === 'hardcore' ? (userAnswer ||
-                                        "___") : line.gap)}
-                                    </span>
-                                    ) : (
-                                    difficulty === 'hardcore' ? (
-                                    <span
-                                        className="inline-block min-w-[50px] border-b-2 border-white animate-pulse mx-1 text-center font-bold text-white">{userAnswer}</span>
-                                    ) : (
-                                    <span
-                                        className="inline-block px-3 py-0.5 bg-slate-700 rounded animate-pulse mx-1 text-center text-slate-400 text-xs">???</span>
-                                    )
-                                    )}
-                                    <span className="text-blue-300">{line.postCode}</span>
-                                </div>
-                                ) : (
-                                <span className="text-slate-300">{line.text}</span>
-                                )}
-                            </div>
-                            ))}
-                            <div ref={codeEndRef} />
-                        </div>
-
-                        {/* Input / Options Area */}
-                        {!typing && gameState === 'playing' && (
-                        <div
-                            className="p-4 bg-slate-900 border-t border-slate-800 animate-in slide-in-from-bottom-4 pb-8 md:pb-4 z-10">
-                            {difficulty === 'hardcore' ? (
-                            <form onSubmit={(e)=> { e.preventDefault(); handleAnswer(userAnswer); }}
-                                className="flex items-center space-x-2 bg-black p-3 rounded-lg border border-slate-700"
-                                >
-                                <span className="text-green-500 font-mono">{'>'}</span>
-                                <input ref={inputRef} type="text" value={userAnswer} onChange={(e)=>
-                                setUserAnswer(e.target.value)}
-                                className="flex-1 bg-transparent border-none outline-none text-white font-mono
-                                placeholder-slate-600"
-                                placeholder="코드를 입력하세요..."
-                                autoFocus
-                                autoComplete="off"
-                                />
-                                <button type="submit"
-                                    className="bg-green-600 px-4 py-1 rounded text-xs font-bold hover:bg-green-500 text-white transition-colors">RUN</button>
-                            </form>
-                            ) : (
-                            <div className="grid grid-cols-2 gap-3">
-                                {QUESTIONS_SOURCE[selectedLanguage][currentQIndex].options.map((opt, idx) => (
-                                <button key={idx} onClick={()=> handleAnswer(opt)}
-                                    className="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-left font-mono
-                                    text-sm border border-slate-700 hover:border-blue-500 transition-all text-white
-                                    group flex justify-between items-center"
-                                    >
-                                    <span className="flex items-center">
-                                        <span
-                                            className="text-slate-500 mr-2 group-hover:text-blue-400 font-bold">{String.fromCharCode(65+idx)}.</span>
-                                        {opt}
-                                    </span>
-                                    <ChevronRight size={16}
-                                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500" />
-                                </button>
+                        // --- PLAYING VIEW ---
+                        <>
+                            {/* Code Area */}
+                            <div className="flex-1 overflow-y-auto p-4 md:p-6 font-mono text-sm md:text-base leading-relaxed relative custom-scrollbar" onClick={() => difficulty === 'hardcore' && inputRef.current?.focus()}>
+                                {displayCode.map((line, idx) => (
+                                    <div key={idx} className={`${line.type === 'filler' ? 'text-slate-600 opacity-40' : ''} mb-1 whitespace-pre-wrap`}>
+                                        {line.type === 'comment' && <span className="text-green-600 italic">{line.text}</span>}
+                                        {line.type === 'question' ? (
+                                            <div className="flex flex-wrap items-center bg-slate-800/50 p-2 -mx-2 rounded border-l-2 border-blue-500 my-2">
+                                                <span className="text-blue-300">{line.text}</span>
+                                                {gameState === 'feedback' ? (
+                                                    <span className={`px-2 rounded font-bold mx-1 ${feedback.correct ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                        {feedback.correct ? line.gap : (difficulty === 'hardcore' ? (userAnswer || "___") : line.gap)}
+                                                    </span>
+                                                ) : (
+                                                    difficulty === 'hardcore' ? (
+                                                        <span className="inline-block min-w-[50px] border-b-2 border-white animate-pulse mx-1 text-center font-bold text-white">{userAnswer}</span>
+                                                    ) : (
+                                                        <span className="inline-block px-3 py-0.5 bg-slate-700 rounded animate-pulse mx-1 text-center text-slate-400 text-xs">???</span>
+                                                    )
+                                                )}
+                                                <span className="text-blue-300">{line.postCode}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-300">{line.text}</span>
+                                        )}
+                                    </div>
                                 ))}
+                                <div ref={codeEndRef} />
                             </div>
+
+                            {/* Input / Options Area */}
+                            {!typing && gameState === 'playing' && (
+                                <div className="p-4 bg-slate-900 border-t border-slate-800 animate-slide-up pb-8 md:pb-4 z-10">
+                                    {difficulty === 'hardcore' ? (
+                                        <form 
+                                            onSubmit={(e) => { e.preventDefault(); handleAnswer(userAnswer); }}
+                                            className="flex items-center space-x-2 bg-black p-3 rounded-lg border border-slate-700"
+                                        >
+                                            <span className="text-green-500 font-mono">{'>'}</span>
+                                            <input 
+                                                ref={inputRef}
+                                                type="text" 
+                                                value={userAnswer}
+                                                onChange={(e) => setUserAnswer(e.target.value)}
+                                                className="flex-1 bg-transparent border-none outline-none text-white font-mono placeholder-slate-600"
+                                                placeholder="코드를 입력하세요..."
+                                                autoFocus
+                                                autoComplete="off"
+                                            />
+                                            <button type="submit" className="bg-green-600 px-4 py-1 rounded text-xs font-bold hover:bg-green-500 text-white transition-colors">RUN</button>
+                                        </form>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {QUESTIONS_SOURCE[selectedLanguage][currentQIndex].options.map((opt, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleAnswer(opt)}
+                                                    className="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-left font-mono text-sm border border-slate-700 hover:border-blue-500 transition-all text-white group flex justify-between items-center"
+                                                >
+                                                    <span className="flex items-center">
+                                                        <span className="text-slate-500 mr-2 group-hover:text-blue-400 font-bold">{String.fromCharCode(65+idx)}.</span>
+                                                        {opt}
+                                                    </span>
+                                                    <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             )}
-                        </div>
-                        )}
 
-                        {/* Feedback Overlay */}
-                        {gameState === 'feedback' && (
-                        <div className={`p-4 border-t ${feedback.correct ? 'bg-green-900/40 border-green-500/50'
-                            : 'bg-red-900/40 border-red-500/50' } pb-8 md:pb-4 backdrop-blur-sm z-10`}>
-                            <div className="flex items-center mb-2">
-                                {feedback.correct ?
-                                <CheckCircle className="text-green-400 mr-2" /> :
-                                <XCircle className="text-red-400 mr-2" />}
-                                <span className={`font-bold ${feedback.correct ? 'text-green-300' : 'text-red-300' }`}>
-                                    {feedback.correct ? "COMPILATION SUCCESS" : "SYNTAX ERROR"}
-                                </span>
-                            </div>
-                            <p className="text-sm text-slate-300 mb-4 font-mono pl-8">
-                                {QUESTIONS_SOURCE[selectedLanguage][currentQIndex].explanation}</p>
-
-                            <div className="flex gap-2">
-                                {feedback.correct ? (
-                                <button onClick={nextQuestion}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg text-sm font-bold flex items-center justify-center text-white transition-all shadow-lg">
-                                    다음 단계
-                                    <Play className="w-3 h-3 ml-2 fill-current" />
-                                </button>
-                                ) : (
-                                <button onClick={lives> 0 ? retryQuestion : () => endGame(false)} className={`w-full
-                                    py-3 rounded-lg text-sm font-bold flex items-center justify-center text-white
-                                    transition-all shadow-lg ${lives > 0 ? 'bg-slate-600 hover:bg-slate-500' :
-                                    'bg-red-600 hover:bg-red-500'}`}>
-                                    {lives > 0 ? "다시 시도 (DEBUG)" : "시스템 종료"}
-                                    <RotateCcw className="w-3 h-3 ml-2" />
-                                </button>
-                                )}
-                            </div>
-                        </div>
-                        )}
-                    </>
+                            {/* Feedback Overlay */}
+                            {gameState === 'feedback' && (
+                                <div className={`p-4 border-t ${feedback.correct ? 'bg-green-900/40 border-green-500/50' : 'bg-red-900/40 border-red-500/50'} pb-8 md:pb-4 backdrop-blur-sm z-10 animate-slide-up`}>
+                                    <div className="flex items-center mb-2">
+                                        {feedback.correct ? <CheckCircle className="text-green-400 mr-2"/> : <XCircle className="text-red-400 mr-2"/>}
+                                        <span className={`font-bold ${feedback.correct ? 'text-green-300' : 'text-red-300'}`}>
+                                            {feedback.correct ? "COMPILATION SUCCESS" : "SYNTAX ERROR"}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-slate-300 mb-4 font-mono pl-8">{QUESTIONS_SOURCE[selectedLanguage][currentQIndex].explanation}</p>
+                                    
+                                    <div className="flex gap-2">
+                                        {feedback.correct ? (
+                                            <button onClick={nextQuestion} className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg text-sm font-bold flex items-center justify-center text-white transition-all shadow-lg">
+                                                다음 단계 <Play className="w-3 h-3 ml-2 fill-current" />
+                                            </button>
+                                        ) : (
+                                            <button onClick={lives > 0 ? retryQuestion : () => endGame(false)} className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center text-white transition-all shadow-lg ${lives > 0 ? 'bg-slate-600 hover:bg-slate-500' : 'bg-red-600 hover:bg-red-500'}`}>
+                                                {lives > 0 ? "다시 시도 (DEBUG)" : "시스템 종료"} <RotateCcw className="w-3 h-3 ml-2" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
-                {/* RIGHT PANEL: Live Preview (Always visible in split screen) */}
-                <div
-                    className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-slate-800 bg-black h-1/3 md:h-full transition-all duration-300">
-                    <ProjectPreview language={selectedLanguage} progress={(currentQIndex /
-                        QUESTIONS_SOURCE[selectedLanguage || 'C' ].length) * 100} isInteractive={gameState==='gameover'
-                        && lives> 0}
-                        />
+                {/* RIGHT PANEL: Live Preview */}
+                <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-slate-800 bg-black h-1/3 md:h-full transition-all duration-300">
+                     <ProjectPreview 
+                        language={selectedLanguage} 
+                        progress={(currentQIndex / QUESTIONS_SOURCE[selectedLanguage || 'C'].length) * 100} 
+                        isInteractive={gameState === 'gameover' && lives > 0} 
+                    />
                 </div>
             </div>
-            );
-            };
+          );
+        };
 
-            export default CodeRushRemastered;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CodeRushRemastered />);
+    </script>
+</body>
+</html>
