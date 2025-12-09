@@ -603,6 +603,8 @@
           const [feedback, setFeedback] = useState(null);
           
           const [userAnswer, setUserAnswer] = useState(""); 
+          const [hardcoreQueue, setHardcoreQueue] = useState([]); // For sequential gaps
+          
           const codeEndRef = useRef(null);
           const inputRef = useRef(null);
 
@@ -618,6 +620,7 @@
             setLives(3);
             setCurrentQIndex(0);
             setDisplayCode([]);
+            setHardcoreQueue([]);
             setGameState('playing');
             triggerTypingEffect(randomScenario, 0);
           };
@@ -651,32 +654,123 @@
             setTyping(false);
             setUserAnswer("");
             
-            const questionLines = [
-                { text: `// ${q.context}`, type: 'comment' },
-                { text: q.preCode, gap: q.gap, postCode: q.postCode, type: 'question' }
-            ];
-            setDisplayCode([...currentLines, ...questionLines]);
-            if (codeEndRef.current) codeEndRef.current.scrollIntoView({ behavior: 'smooth' });
-
             if (difficulty === 'hardcore') {
+                // Hardcore Logic: Create Multiple Random Gaps
+                const fullLine = q.preCode + q.gap + q.postCode;
+                // Tokenize by splitting with spaces and symbols, keeping delimiters
+                // Regex: Split by non-alphanumeric, keeping delimiters. 
+                // Then filter for meaningful tokens.
+                const tokens = fullLine.split(/([a-zA-Z0-9_]+)/).filter(t => t.length > 0);
+                
+                // Identify word indices
+                const wordIndices = tokens.map((t, i) => /^[a-zA-Z0-9_]+$/.test(t) ? i : -1).filter(i => i !== -1);
+                
+                // Randomly select 2-4 gaps (or fewer if line is short)
+                const numGaps = Math.min(wordIndices.length, Math.floor(Math.random() * 2) + 2);
+                const shuffledIndices = [...wordIndices].sort(() => 0.5 - Math.random());
+                const targetIndices = shuffledIndices.slice(0, numGaps).sort((a,b) => a-b);
+                
+                // Construct Queue
+                const queue = targetIndices.map(i => ({ index: i, answer: tokens[i] }));
+                setHardcoreQueue(queue);
+
+                // Construct initial display segments
+                const segments = tokens.map((t, i) => ({
+                    text: t,
+                    isGap: targetIndices.includes(i),
+                    solved: false
+                }));
+
+                const questionLine = {
+                    type: 'hardcore_question',
+                    segments: segments,
+                    context: q.context,
+                    explanation: q.explanation // Keep for later feedback
+                };
+                
+                setDisplayCode([...currentLines, questionLine]);
                 setTimeout(() => inputRef.current?.focus(), 100);
+
+            } else {
+                // Beginner Logic (Single Gap)
+                const questionLine = { 
+                    text: `// ${q.context}`, 
+                    type: 'comment' 
+                };
+                const codeLine = {
+                    text: q.preCode, 
+                    gap: q.gap, 
+                    postCode: q.postCode, 
+                    type: 'question',
+                    options: q.options,
+                    answer: q.answer,
+                    explanation: q.explanation
+                };
+                setDisplayCode([...currentLines, questionLine, codeLine]);
             }
+            
+            if (codeEndRef.current) codeEndRef.current.scrollIntoView({ behavior: 'smooth' });
           };
 
           const handleAnswer = (answer) => {
             if (!currentScenario) return;
-            const q = currentScenario.questions[currentQIndex];
-            const isCorrect = answer.trim() === q.answer;
 
-            if (isCorrect) {
-                setScore(s => s + 100);
-                setFeedback({ correct: true, msg: "OK" });
+            if (difficulty === 'hardcore') {
+                if (hardcoreQueue.length === 0) return;
+
+                const currentTarget = hardcoreQueue[0];
+                const isCorrect = answer.trim() === currentTarget.answer;
+
+                if (isCorrect) {
+                    setScore(s => s + 50); // Smaller score per word
+                    setUserAnswer("");
+                    
+                    // Update display to show solved word
+                    setDisplayCode(prev => {
+                        const newCode = [...prev];
+                        const lastLine = {...newCode[newCode.length - 1]};
+                        const newSegments = [...lastLine.segments];
+                        newSegments[currentTarget.index] = { ...newSegments[currentTarget.index], solved: true };
+                        lastLine.segments = newSegments;
+                        newCode[newCode.length - 1] = lastLine;
+                        return newCode;
+                    });
+
+                    // Remove from queue
+                    const newQueue = hardcoreQueue.slice(1);
+                    setHardcoreQueue(newQueue);
+
+                    // Check if line complete
+                    if (newQueue.length === 0) {
+                        setFeedback({ correct: true, msg: "LINE COMPLETE" });
+                        setGameState('feedback');
+                    }
+                } else {
+                    setLives(l => l - 1);
+                    setScore(s => Math.max(0, s - 20));
+                    // Don't advance, just shake/flash red (visuals handled by feedback state usually, but here we stay in playing)
+                    // Optional: Show temporary error in input placeholder?
+                    const input = inputRef.current;
+                    if(input) {
+                        input.classList.add('animate-pulse', 'bg-red-900');
+                        setTimeout(() => input.classList.remove('animate-pulse', 'bg-red-900'), 500);
+                    }
+                }
             } else {
-                setLives(l => l - 1);
-                setScore(s => Math.max(0, s - 50));
-                setFeedback({ correct: false, msg: `Error.` }); 
+                // Beginner Logic
+                const q = currentScenario.questions[currentQIndex];
+                const isCorrect = answer.trim() === q.answer;
+
+                if (isCorrect) {
+                    setScore(s => s + 100);
+                    setFeedback({ correct: true, msg: "OK" });
+                } else {
+                    setLives(l => l - 1);
+                    setScore(s => Math.max(0, s - 50));
+                    setFeedback({ correct: false, msg: `Error.` }); 
+                }
+                setGameState('feedback');
             }
-            setGameState('feedback');
           };
 
           const nextQuestion = () => {
@@ -838,25 +932,44 @@
                                 {displayCode.map((line, idx) => (
                                     <div key={idx} className={`${line.type === 'filler' ? 'text-slate-600 opacity-40' : ''} mb-1 whitespace-pre-wrap`}>
                                         {line.type === 'comment' && <span className="text-green-600 italic">{line.text}</span>}
-                                        {line.type === 'question' ? (
+                                        
+                                        {/* Beginner Question */}
+                                        {line.type === 'question' && (
                                             <div className="flex flex-wrap items-center bg-slate-800/50 p-2 -mx-2 rounded border-l-2 border-blue-500 my-2">
                                                 <span className="text-blue-300">{line.text}</span>
                                                 {gameState === 'feedback' ? (
                                                     <span className={`px-2 rounded font-bold mx-1 ${feedback.correct ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                                        {feedback.correct ? line.gap : (difficulty === 'hardcore' ? (userAnswer || "___") : line.gap)}
+                                                        {feedback.correct ? line.gap : line.gap}
                                                     </span>
                                                 ) : (
-                                                    difficulty === 'hardcore' ? (
-                                                        <span className="inline-block min-w-[50px] border-b-2 border-white animate-pulse mx-1 text-center font-bold text-white">{userAnswer}</span>
-                                                    ) : (
-                                                        <span className="inline-block px-3 py-0.5 bg-slate-700 rounded animate-pulse mx-1 text-center text-slate-400 text-xs">???</span>
-                                                    )
+                                                    <span className="inline-block px-3 py-0.5 bg-slate-700 rounded animate-pulse mx-1 text-center text-slate-400 text-xs">???</span>
                                                 )}
                                                 <span className="text-blue-300">{line.postCode}</span>
                                             </div>
-                                        ) : (
-                                            <span className="text-slate-300">{line.text}</span>
                                         )}
+
+                                        {/* Hardcore Question (Multi-Gap) */}
+                                        {line.type === 'hardcore_question' && (
+                                            <div className="my-2 bg-slate-900/50 p-2 -mx-2 rounded border-l-4 border-red-500">
+                                                <div className="text-xs text-green-600 mb-1">// {line.context}</div>
+                                                <div className="flex flex-wrap gap-1 items-center text-blue-300">
+                                                    {line.segments.map((seg, sIdx) => (
+                                                        <span key={sIdx} className={`${
+                                                            seg.isGap 
+                                                                ? (seg.solved 
+                                                                    ? "text-green-400 font-bold border-b-2 border-green-500" 
+                                                                    : (sIdx === hardcoreQueue[0]?.index ? "text-transparent border-b-2 border-red-500 min-w-[30px] animate-pulse bg-red-900/20" : "text-transparent border-b border-slate-600 min-w-[20px]")) 
+                                                                : ""
+                                                        }`}>
+                                                            {seg.isGap && !seg.solved ? "____" : seg.text}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Filler Code */}
+                                        {line.type === 'filler' && <span className="text-slate-300">{line.text}</span>}
                                     </div>
                                 ))}
                                 <div ref={codeEndRef} />
@@ -866,23 +979,27 @@
                             {!typing && gameState === 'playing' && (
                                 <div className="p-4 bg-slate-900 border-t border-slate-800 animate-slide-up pb-8 md:pb-4 z-10">
                                     {difficulty === 'hardcore' ? (
-                                        <form 
-                                            onSubmit={(e) => { e.preventDefault(); handleAnswer(userAnswer); }}
-                                            className="flex items-center space-x-2 bg-black p-3 rounded-lg border border-slate-700"
-                                        >
-                                            <span className="text-green-500 font-mono">{'>'}</span>
-                                            <input 
-                                                ref={inputRef}
-                                                type="text" 
-                                                value={userAnswer}
-                                                onChange={(e) => setUserAnswer(e.target.value)}
-                                                className="flex-1 bg-transparent border-none outline-none text-white font-mono placeholder-slate-600"
-                                                placeholder="코드를 입력하세요..."
-                                                autoFocus
-                                                autoComplete="off"
-                                            />
-                                            <button type="submit" className="bg-green-600 px-4 py-1 rounded text-xs font-bold hover:bg-green-500 text-white transition-colors">RUN</button>
-                                        </form>
+                                        <div className="flex items-center space-x-2 bg-black p-3 rounded-lg border border-red-900/50 shadow-lg shadow-red-900/10">
+                                            <span className="text-red-500 font-mono font-bold animate-pulse">{'>'}</span>
+                                            <form 
+                                                className="flex-1"
+                                                onSubmit={(e) => { e.preventDefault(); handleAnswer(userAnswer); }}
+                                            >
+                                                <input 
+                                                    ref={inputRef}
+                                                    type="text" 
+                                                    value={userAnswer}
+                                                    onChange={(e) => setUserAnswer(e.target.value)}
+                                                    className="w-full bg-transparent border-none outline-none text-white font-mono placeholder-slate-600"
+                                                    placeholder={hardcoreQueue.length > 0 ? "Type missing code..." : "Processing..."}
+                                                    autoFocus
+                                                    autoComplete="off"
+                                                />
+                                            </form>
+                                            <span className="text-xs text-slate-500 font-mono">
+                                                {hardcoreQueue.length} REMAINING
+                                            </span>
+                                        </div>
                                     ) : (
                                         <div className="grid grid-cols-2 gap-3">
                                             {currentScenario.questions[currentQIndex].options.map((opt, idx) => (
