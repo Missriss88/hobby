@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Park Tycoon</title>
+    <!-- 1. 스타일(Tailwind CSS) 불러오기 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. 리액트 라이브러리 불러오기 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 3. JSX 변환기(Babel) 불러오기 -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* 커스텀 스크롤바 */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        body { background-color: #0f172a; color: white; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- 아이콘 컴포넌트 (SVG 직접 정의) ---
+        const Icon = ({ path, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            Play: (props) => <Icon path={<polygon points="5 3 19 12 5 21 5 3"></polygon>} {...props} />,
+            Pause: (props) => <Icon path={<><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></>} {...props} />,
+            MousePointer2: (props) => <Icon path={<><path d="m12 6-6 6h4v12h4V12h4l-6-6z"></path></>} {...props} />, // Simplified pointer
+            Hammer: (props) => <Icon path={<><path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"></path><path d="M17.64 15 22 10.64"></path><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25V7.86c0-.55-.45-1-1-1H16.4c-.84 0-1.65-.33-2.25-.93L12.9 4.68"></path><path d="M15 12l-8.5 8.5"></path></>} {...props} />,
+            Coins: (props) => <Icon path={<><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7 .71-2.82 2.82"></path></>} {...props} />,
+            Users: (props) => <Icon path={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></>} {...props} />,
+            Beaker: (props) => <Icon path={<><path d="M4.5 3h15"></path><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3"></path><path d="M6 14h12"></path></>} {...props} />,
+            Calendar: (props) => <Icon path={<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></>} {...props} />,
+            Trash2: (props) => <Icon path={<><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></>} {...props} />,
+            AlertTriangle: (props) => <Icon path={<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></>} {...props} />,
+            Lock: (props) => <Icon path={<><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></>} {...props} />,
+            ShieldCheck: (props) => <Icon path={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></>} {...props} />,
+            Wrench: (props) => <Icon path={<><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></>} {...props} />,
+            Hourglass: (props) => <Icon path={<><path d="M5 22h14"></path><path d="M5 2h14"></path><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path></>} {...props} />
+        };
+
+        // --- 게임 로직 시작 ---
+        const TILE_SIZE = 32;
+        const GRID_WIDTH = 40; 
+        const GRID_HEIGHT = 30;
+        const TICKS_PER_DAY_BASE = 600; 
+
+        const STAFF_TYPES = {
+            janitor: { id: 'janitor', name: '청소부', icon: '🧹', cost: 500, salary: 100, color: '#fca5a5', desc: '청결 유지' },
+            engineer: { id: 'engineer', name: '엔지니어', icon: '🔧', cost: 800, salary: 200, color: '#fbbf24', desc: '기구 수리' },
+            zookeeper: { id: 'zookeeper', name: '사육사', icon: '🥩', cost: 600, salary: 150, color: '#bef264', desc: '동물 관리' },
+            security: { id: 'security', name: '경비원', icon: '🛡️', cost: 500, salary: 120, color: '#60a5fa', desc: '치안 유지' }
+        };
+
+        const BUILDINGS = {
+            road: { id: 'road', name: '보도블럭', icon: '⬜', type: 'path', w: 1, h: 1, cost: 50, income: 0, upkeep: 2 },
+            tree: { id: 'tree', name: '나무', icon: '🌳', type: 'deco', w: 1, h: 1, cost: 200, income: 0, upkeep: 5 },
+            bench: { id: 'bench', name: '벤치', icon: '🪑', type: 'deco', w: 1, h: 1, cost: 300, income: 0, upkeep: 5 },
+            trashcan: { id: 'trashcan', name: '쓰레기통', icon: '🗑️', type: 'deco', w: 1, h: 1, cost: 150, income: 0, upkeep: 5, desc: '청결도 유지' },
+            toilet: { id: 'toilet', name: '화장실', icon: '🚻', type: 'amenity', w: 2, h: 1, cost: 1000, income: 50, upkeep: 50, capacity: 5, duration: 100 },
+            burger: { id: 'burger', name: '버거샵', icon: '🍔', type: 'shop', w: 2, h: 2, cost: 2000, income: 500, upkeep: 100, capacity: 5, duration: 150 },
+            icecream: { id: 'icecream', name: '아이스크림', icon: '🍦', type: 'shop', w: 1, h: 1, cost: 1500, income: 300, upkeep: 80, capacity: 3, duration: 100 },
+            carousel: { id: 'carousel', name: '회전목마', icon: '🎠', type: 'ride', w: 3, h: 3, cost: 5000, income: 600, upkeep: 250, capacity: 8, duration: 300 },
+            bumper: { id: 'bumper', name: '범퍼카', icon: '🚗', type: 'ride', w: 3, h: 3, cost: 6000, income: 700, upkeep: 300, capacity: 6, duration: 300 },
+            haunted: { id: 'haunted', name: '유령의집', icon: '👻', type: 'ride', w: 3, h: 3, cost: 7000, income: 800, upkeep: 350, capacity: 4, duration: 400 },
+            viking: { id: 'viking', name: '바이킹', icon: '🛶', type: 'ride', w: 4, h: 2, cost: 10000, income: 1000, upkeep: 500, capacity: 12, duration: 400 },
+            ferris: { id: 'ferris', name: '대관람차', icon: '🎡', type: 'ride', w: 3, h: 3, cost: 12000, income: 1200, upkeep: 600, capacity: 16, duration: 600 },
+            droptower: { id: 'droptower', name: '자이로드롭', icon: '🗼', type: 'ride', w: 2, h: 2, cost: 15000, income: 1500, upkeep: 700, capacity: 8, duration: 200 },
+            gyroswing: { id: 'gyroswing', name: '자이로스윙', icon: '🛸', type: 'ride', w: 4, h: 4, cost: 18000, income: 1800, upkeep: 800, capacity: 12, duration: 400 },
+            coaster: { id: 'coaster', name: '롤러코스터', icon: '🎢', type: 'ride', w: 6, h: 4, cost: 30000, income: 3000, upkeep: 1500, capacity: 20, duration: 500 },
+            panda: { id: 'panda', name: '판다 우리', icon: '🐼', type: 'zoo', w: 3, h: 3, cost: 5000, income: 400, upkeep: 300, capacity: 10, duration: 400 },
+            lion: { id: 'lion', name: '사자 우리', icon: '🦁', type: 'zoo', w: 4, h: 3, cost: 8000, income: 600, upkeep: 500, capacity: 10, duration: 400 },
+            elephant: { id: 'elephant', name: '코끼리', icon: '🐘', type: 'zoo', w: 4, h: 4, cost: 10000, income: 800, upkeep: 600, capacity: 12, duration: 500 },
+            penguin: { id: 'penguin', name: '펭귄', icon: '🐧', type: 'zoo', w: 3, h: 2, cost: 6000, income: 500, upkeep: 400, capacity: 8, duration: 300 },
+            giraffe: { id: 'giraffe', name: '기린', icon: '🦒', type: 'zoo', w: 3, h: 4, cost: 7000, income: 550, upkeep: 450, capacity: 8, duration: 400 },
+            entrance: { id: 'entrance', name: '입구', icon: '⛩️', type: 'path', w: 2, h: 1, cost: 0, income: 0, upkeep: 0 }
+        };
+
+        const RESEARCH_PROJECTS = [
+            { id: 'amenities', name: '편의시설 확충', cost: 2000, desc: '화장실, 쓰레기통 해금', unlocks: ['toilet', 'trashcan'], req: null },
+            { id: 'snacks', name: '스낵 코너', cost: 3000, desc: '아이스크림 해금', unlocks: ['icecream'], req: null },
+            { id: 'family_rides', name: '가족 놀이기구', cost: 5000, desc: '범퍼카, 유령의집 해금', unlocks: ['bumper', 'haunted'], req: null },
+            { id: 'thrill_rides_1', name: '스릴 기구 I', cost: 8000, desc: '바이킹, 대관람차 해금', unlocks: ['viking', 'ferris'], req: 'family_rides' },
+            { id: 'thrill_rides_2', name: '스릴 기구 II', cost: 15000, desc: '자이로드롭, 자이로스윙 해금', unlocks: ['droptower', 'gyroswing'], req: 'thrill_rides_1' },
+            { id: 'extreme_coaster', name: '롤러코스터 공학', cost: 30000, desc: '롤러코스터 해금', unlocks: ['coaster'], req: 'thrill_rides_2' },
+            { id: 'zoo_basic', name: '동물원 기초', cost: 5000, desc: '판다, 펭귄 해금', unlocks: ['panda', 'penguin'], req: null },
+            { id: 'zoo_adv', name: '사파리 확장', cost: 10000, desc: '사자, 코끼리, 기린 해금', unlocks: ['lion', 'elephant', 'giraffe'], req: 'zoo_basic' },
+        ];
+
+        const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        function RetroParkTycoon() {
+            const [money, setMoney] = useState(50000); 
+            const [visitors, setVisitors] = useState([]);
+            const [staff, setStaff] = useState([]);
+            const [trash, setTrash] = useState([]); 
+            const [brokenRides, setBrokenRides] = useState({}); 
+            
+            const [date, setDate] = useState({ year: 1, month: 3, day: 1 });
+            const [gameSpeed, setGameSpeed] = useState(1);
+            const [monthlyStats, setMonthlyStats] = useState({ income: 0, expenses: 0 });
+            const [showReport, setShowReport] = useState(null); 
+            const [estimatedExpenses, setEstimatedExpenses] = useState(0);
+            const [buildingUsage, setBuildingUsage] = useState({}); 
+
+            const [tiles, setTiles] = useState(() => {
+                const initialTiles = Array(GRID_HEIGHT).fill(null).map(() => Array(GRID_WIDTH).fill(null));
+                const ex = Math.floor(GRID_WIDTH / 2) - 1;
+                const ey = GRID_HEIGHT - 1;
+                initialTiles[ey][ex] = { ...BUILDINGS.entrance, originX: ex, originY: ey, instanceId: 'entrance' };
+                initialTiles[ey][ex+1] = { ...BUILDINGS.entrance, originX: ex, originY: ey, instanceId: 'entrance' };
+                return initialTiles;
+            });
+
+            const [selectedTool, setSelectedTool] = useState(null); 
+            const [isPlaying, setIsPlaying] = useState(true);
+            const [gameTick, setGameTick] = useState(0);
+            const [message, setMessage] = useState("대규모 업데이트! 유지비가 비싸니 신중하게 건설하세요.");
+            const [popups, setPopups] = useState([]);
+            
+            const [unlockedItems, setUnlockedItems] = useState(['road', 'tree', 'bench', 'burger', 'carousel', 'entrance']);
+            const [researchedProjects, setResearchedProjects] = useState([]);
+            const [showResearchModal, setShowResearchModal] = useState(false);
+
+            const canvasRef = useRef(null);
+            const requestRef = useRef();
+
+            useEffect(() => {
+                let salaryCost = 0;
+                staff.forEach(s => salaryCost += STAFF_TYPES[s.type].salary);
+                
+                let upkeepCost = 0;
+                const uniqueBuildings = new Set();
+                if(tiles) {
+                    tiles.forEach(row => row.forEach(tile => {
+                        if(tile && tile.instanceId && !uniqueBuildings.has(tile.instanceId)) {
+                            uniqueBuildings.add(tile.instanceId);
+                            if(tile.upkeep) upkeepCost += tile.upkeep;
+                        }
+                    }));
+                }
+                setEstimatedExpenses(salaryCost + upkeepCost);
+            }, [staff, tiles]);
+
+            const addMoney = useCallback((amount, isIncome = true) => {
+                setMoney(prev => prev + amount);
+                if (isIncome && amount > 0) {
+                    setMonthlyStats(prev => ({ ...prev, income: prev.income + amount }));
+                }
+            }, []);
+
+            const addPopup = useCallback((gx, gy, text, color) => {
+                setPopups(prev => [...prev, { id: Date.now() + Math.random(), x: gx * TILE_SIZE + TILE_SIZE/2, y: gy * TILE_SIZE, text, color, life: 40 }]);
+            }, []);
+
+            const processTime = useCallback(() => {
+                setDate(prev => {
+                    let { year, month, day } = prev;
+                    day++;
+                    if (day > 30) {
+                        day = 1;
+                        month++;
+                        const totalExpenses = estimatedExpenses; 
+                        const netIncome = monthlyStats.income - totalExpenses;
+
+                        setMoney(m => m - totalExpenses);
+                        setShowReport({ year, month: month - 1, income: monthlyStats.income, expenses: totalExpenses, total: netIncome });
+                        setMonthlyStats({ income: 0, expenses: 0 });
+                        setIsPlaying(false);
+                    }
+                    if (month > 12) { month = 1; year++; }
+                    return { year, month, day };
+                });
+            }, [estimatedExpenses, monthlyStats]);
+
+            const processVisitorLogic = useCallback((currentVisitors) => {
+                if (!tiles) return { nextVisitors: currentVisitors, newTrash: [], newBreakdowns: {}, moneyUpdates: [] };
+
+                const newTrash = [];
+                const newBreakdowns = {};
+                const moneyUpdates = [];
+                
+                const currentUsage = {};
+                currentVisitors.forEach(v => {
+                    if (v.state === 'riding' && v.targetBuildingId) {
+                        currentUsage[v.targetBuildingId] = (currentUsage[v.targetBuildingId] || 0) + 1;
+                    }
+                });
+                setBuildingUsage(currentUsage);
+
+                const isNearby = (x, y, type, radius) => {
+                    if (type === 'security') {
+                        for (const s of staff) {
+                            if (s.type === 'security' && Math.abs(s.x - x) < radius && Math.abs(s.y - y) < radius) return true;
+                        }
+                    }
+                    if (type === 'trashcan') {
+                        const rx = Math.round(x); const ry = Math.round(y);
+                        for (let dy = -radius; dy <= radius; dy++) {
+                            for (let dx = -radius; dx <= radius; dx++) {
+                                const t = tiles[ry + dy]?.[rx + dx];
+                                if (t && t.id === 'trashcan') return true;
+                            }
+                        }
+                    }
+                    return false;
+                };
+
+                const nextVisitors = currentVisitors.map(v => {
+                    let { x, y, targetX, targetY, state, timer, targetBuildingId } = v;
+                    const speed = 0.15 * gameSpeed; 
+
+                    if (state === 'walking') {
+                        const nearSecurity = isNearby(x, y, 'security', 4);
+                        const nearTrashCan = isNearby(x, y, 'trashcan', 3);
+                        let trashChance = 0.0005 * gameSpeed; 
+                        let vomitChance = 0.0002 * gameSpeed;
+
+                        if (nearSecurity) { trashChance = 0; vomitChance = 0; }
+                        if (nearTrashCan) { trashChance *= 0.1; }
+
+                        if (Math.random() < trashChance) {
+                            newTrash.push({ id: Date.now() + Math.random(), x: Math.round(x), y: Math.round(y), type: 'trash' });
+                        } else if (Math.random() < vomitChance) {
+                            newTrash.push({ id: Date.now() + Math.random(), x: Math.round(x), y: Math.round(y), type: 'vomit' });
+                            timer = 20; 
+                        }
+                    }
+
+                    if (state === 'riding' || state === 'eating' || state === 'watching') {
+                        timer -= gameSpeed;
+                        if (timer <= 0) {
+                            state = 'walking';
+                            targetBuildingId = null; 
+                        }
+                        return { ...v, state, timer, targetBuildingId };
+                    }
+
+                    if (state === 'queueing') {
+                        const usage = currentUsage[targetBuildingId] || 0;
+                        if (usage < (v.maxCapacity || 5) && !brokenRides[targetBuildingId]) {
+                            state = 'riding';
+                            timer = v.rideDuration || 100;
+                            moneyUpdates.push({ amount: v.rideCost, x, y });
+                            if (Math.random() < 0.01) newBreakdowns[targetBuildingId] = true;
+                        }
+                        return { ...v, state, timer, targetBuildingId };
+                    }
+
+                    if (Math.abs(x - targetX) < speed && Math.abs(y - targetY) < speed) {
+                        x = targetX; y = targetY;
+                        const neighbors = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+                        
+                        const validMoves = neighbors.filter(n => {
+                            const nx = targetX + n.dx; const ny = targetY + n.dy;
+                            if (nx < 0 || nx >= GRID_WIDTH || ny < 0 || ny >= GRID_HEIGHT) return false;
+                            if (!tiles[ny]) return false;
+                            return tiles[ny][nx] !== null; 
+                        });
+
+                        const interactables = neighbors.map(n => {
+                            const nx = targetX + n.dx; const ny = targetY + n.dy;
+                            if (nx < 0 || nx >= GRID_WIDTH || ny < 0 || ny >= GRID_HEIGHT) return null;
+                            const tile = tiles[ny] ? tiles[ny][nx] : null;
+                            return { tile, x: nx, y: ny };
+                        }).filter(b => b && b.tile && ['ride', 'shop', 'zoo', 'amenity'].includes(b.tile.type));
+
+                        if (state === 'walking' && interactables.length > 0 && Math.random() < 0.1) {
+                            const target = interactables[getRandomInt(0, interactables.length - 1)];
+                            const tileId = target.tile.instanceId;
+
+                            if (!brokenRides[tileId]) {
+                                const bInfo = BUILDINGS[target.tile.id]; 
+                                const usage = currentUsage[tileId] || 0;
+                                const rideCost = target.tile.income;
+                                const duration = bInfo.duration || 100;
+                                const capacity = bInfo.capacity || 5;
+
+                                if (usage < capacity) {
+                                    if (target.tile.type === 'shop') state = 'eating';
+                                    else if (target.tile.type === 'zoo') state = 'watching';
+                                    else state = 'riding';
+                                    
+                                    timer = duration;
+                                    targetBuildingId = tileId;
+                                    moneyUpdates.push({ amount: rideCost, x: target.x, y: target.y });
+                                    
+                                    if (target.tile.type === 'ride' && Math.random() < 0.01) newBreakdowns[tileId] = true;
+                                } else {
+                                    state = 'queueing';
+                                    targetBuildingId = tileId;
+                                    v.maxCapacity = capacity;
+                                    v.rideDuration = duration;
+                                    v.rideCost = rideCost;
+                                }
+                            }
+                        } else if (validMoves.length > 0) {
+                            const paths = validMoves.filter(m => tiles[targetY + m.dy][targetX + m.dx].type === 'path');
+                            const move = paths.length > 0 && Math.random() > 0.2
+                                ? paths[getRandomInt(0, paths.length - 1)]
+                                : validMoves[getRandomInt(0, validMoves.length - 1)];
+                            targetX += move.dx; targetY += move.dy;
+                        }
+                    } else {
+                        if (x < targetX) x += speed; if (x > targetX) x -= speed;
+                        if (y < targetY) y += speed; if (y > targetY) y -= speed;
+                    }
+                    return { ...v, x, y, targetX, targetY, state, timer, targetBuildingId };
+                });
+
+                return { nextVisitors, newTrash, newBreakdowns, moneyUpdates };
+            }, [tiles, gameSpeed, brokenRides, staff]);
+
+            const updateStaff = useCallback(() => {
+                if (!tiles) return;
+                setStaff(prev => prev.map(s => {
+                    let { x, y, targetX, targetY, type } = s;
+                    let speed = 0.1 * gameSpeed;
+                    if (type === 'engineer' && Object.keys(brokenRides).length > 0) speed = 0.25 * gameSpeed; 
+
+                    if (Math.abs(x - targetX) < speed && Math.abs(y - targetY) < speed) {
+                        x = targetX; y = targetY;
+                        
+                        if (type === 'janitor') {
+                            let nearest = null; let minDst = 999;
+                            trash.forEach(t => {
+                                const d = Math.abs(t.x - x) + Math.abs(t.y - y);
+                                if(d < minDst) { minDst = d; nearest = t; }
+                            });
+                            if (nearest) {
+                                if (minDst < 1.5) {
+                                    setTrash(t => t.filter(i => i.id !== nearest.id));
+                                    addPopup(x, y, "청소함", '#60a5fa');
+                                } else {
+                                    const dx = Math.sign(nearest.x - x); const dy = Math.sign(nearest.y - y);
+                                    const nx = Math.round(x+dx); const ny = Math.round(y+dy);
+                                    if (dx !== 0 && tiles[Math.round(y)]?.[nx]) targetX += dx;
+                                    else if (dy !== 0 && tiles[ny]?.[Math.round(x)]) targetY += dy;
+                                }
+                            } else {
+                                const move = { dx: getRandomInt(-1, 1), dy: getRandomInt(-1, 1) };
+                                const nx = Math.round(x+move.dx); const ny = Math.round(y+move.dy);
+                                if (tiles[ny]?.[nx]) { targetX += move.dx; targetY += move.dy; }
+                            }
+                        } else if (type === 'engineer') {
+                            const brokenIds = Object.keys(brokenRides);
+                            if (brokenIds.length > 0) {
+                                let targetTile = null; let minDist = 9999;
+                                for(let r=0; r<GRID_HEIGHT; r++) {
+                                    for(let c=0; c<GRID_WIDTH; c++) {
+                                        const tile = tiles[r][c];
+                                        if(tile && brokenIds.includes(String(tile.instanceId))) { 
+                                            const d = Math.abs(c - x) + Math.abs(r - y);
+                                            if (d < minDist) { minDist = d; targetTile = {x: c, y: r, id: tile.instanceId}; }
+                                        }
+                                    }
+                                }
+                                if (targetTile) {
+                                    if (minDist < 1.5) {
+                                        setBrokenRides(b => { const newB = {...b}; delete newB[targetTile.id]; return newB; });
+                                        addPopup(x, y, "수리완료!", '#f59e0b');
+                                    } else {
+                                        const dx = Math.sign(targetTile.x - x); const dy = Math.sign(targetTile.y - y);
+                                        if (dx !== 0 && tiles[Math.round(y)]?.[Math.round(x+dx)]) targetX += dx;
+                                        else if (dy !== 0 && tiles[Math.round(y+dy)]?.[Math.round(x)]) targetY += dy;
+                                    }
+                                }
+                            } else {
+                                const move = { dx: getRandomInt(-1, 1), dy: getRandomInt(-1, 1) };
+                                const nx = Math.round(x+move.dx); const ny = Math.round(y+move.dy);
+                                if (tiles[ny]?.[nx]) { targetX += move.dx; targetY += move.dy; }
+                            }
+                        } else {
+                            const move = { dx: getRandomInt(-1, 1), dy: getRandomInt(-1, 1) };
+                            const nx = Math.round(x+move.dx); const ny = Math.round(y+move.dy);
+                            if (tiles[ny]?.[nx]) { targetX += move.dx; targetY += move.dy; }
+                        }
+                    } else {
+                        if (x < targetX) x += speed; if (x > targetX) x -= speed;
+                        if (y < targetY) y += speed; if (y > targetY) y -= speed;
+                    }
+                    return { ...s, x, y, targetX, targetY };
+                }));
+            }, [trash, brokenRides, tiles, addPopup, gameSpeed]);
+
+            const tick = useCallback(() => {
+                if (!isPlaying) return;
+                setGameTick(prev => prev + 1);
+                
+                const ticksForDay = TICKS_PER_DAY_BASE / gameSpeed;
+                if (gameTick % Math.floor(ticksForDay) === 0) processTime();
+
+                let currentVisitors = [...visitors];
+                const spawnRate = Math.max(10, Math.floor(40 / gameSpeed)); 
+                const visitorCap = 50 + staff.length * 5 + unlockedItems.length * 2;
+                
+                if (gameTick % spawnRate === 0 && currentVisitors.length < visitorCap) {
+                    currentVisitors.push({
+                        id: Date.now() + Math.random(),
+                        x: GRID_WIDTH/2 - 1, y: GRID_HEIGHT-1, targetX: GRID_WIDTH/2 - 1, targetY: GRID_HEIGHT-1, 
+                        state: 'walking', timer: 0, color: `hsl(${Math.random() * 360}, 70%, 60%)`
+                    });
+                }
+
+                const { nextVisitors, newTrash, newBreakdowns, moneyUpdates } = processVisitorLogic(currentVisitors);
+                
+                setVisitors(nextVisitors);
+                updateStaff();
+                
+                if (newTrash.length > 0) {
+                    setTrash(prev => {
+                        const next = [...prev];
+                        newTrash.forEach(t => {
+                            if(!next.some(existing => Math.abs(existing.x - t.x) < 0.5 && Math.abs(existing.y - t.y) < 0.5)) next.push(t);
+                        });
+                        return next;
+                    });
+                }
+
+                if (Object.keys(newBreakdowns).length > 0) {
+                    setBrokenRides(prev => ({ ...prev, ...newBreakdowns }));
+                    Object.keys(newBreakdowns).forEach(() => addPopup(GRID_WIDTH/2, GRID_HEIGHT/2, "🔥 사고 발생!", '#ef4444')); 
+                }
+
+                if (moneyUpdates.length > 0) {
+                    let total = 0;
+                    moneyUpdates.forEach(m => {
+                        total += m.amount;
+                        if(Math.random() < 0.3) addPopup(m.x, m.y, `+${m.amount}`, '#22c55e');
+                    });
+                    addMoney(total);
+                }
+                
+                setPopups(prev => prev.map(p => ({...p, y: p.y - 0.5, life: p.life - 1})).filter(p => p.life > 0));
+
+            }, [isPlaying, gameTick, processTime, visitors, staff.length, unlockedItems.length, processVisitorLogic, updateStaff, gameSpeed, addMoney, addPopup]);
+
+            useEffect(() => {
+                requestRef.current = requestAnimationFrame(tick);
+                return () => cancelAnimationFrame(requestRef.current);
+            }, [tick]);
+
+            // Rendering Logic...
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#86efac'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = 'rgba(0,0,0,0.05)'; ctx.lineWidth = 1;
+                for (let x = 0; x <= GRID_WIDTH; x++) { ctx.beginPath(); ctx.moveTo(x * TILE_SIZE, 0); ctx.lineTo(x * TILE_SIZE, GRID_HEIGHT * TILE_SIZE); ctx.stroke(); }
+                for (let y = 0; y <= GRID_HEIGHT; y++) { ctx.beginPath(); ctx.moveTo(0, y * TILE_SIZE); ctx.lineTo(GRID_WIDTH * TILE_SIZE, y * TILE_SIZE); ctx.stroke(); }
+
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+                if (tiles) {
+                    for (let y = 0; y < GRID_HEIGHT; y++) {
+                        for (let x = 0; x < GRID_WIDTH; x++) {
+                            if (!tiles[y]) continue;
+                            const tile = tiles[y][x];
+                            if (tile && tile.originX === x && tile.originY === y) {
+                                const { w, h, icon, type, instanceId } = tile;
+                                const drawX = x * TILE_SIZE; const drawY = y * TILE_SIZE;
+                                const drawW = w * TILE_SIZE; const drawH = h * TILE_SIZE;
+
+                                if (type === 'path') { ctx.fillStyle = '#94a3b8'; ctx.fillRect(drawX, drawY, drawW, drawH); }
+                                else {
+                                    ctx.fillStyle = type === 'zoo' ? '#fcd34d' : (type === 'shop' ? '#fdba74' : '#cbd5e1');
+                                    if (type === 'amenity') ctx.fillStyle = '#93c5fd';
+                                    if (type === 'deco') ctx.fillStyle = '#86efac';
+                                    if (type !== 'deco') {
+                                        ctx.beginPath(); ctx.roundRect(drawX + 2, drawY + 2, drawW - 4, drawH - 4, 6); ctx.fill();
+                                    }
+                                }
+                                
+                                const fontSize = Math.min(drawW, drawH) * 0.6;
+                                ctx.font = `${fontSize}px sans-serif`; ctx.fillStyle = 'black';
+                                ctx.fillText(icon, drawX + drawW / 2, drawY + drawH / 2);
+
+                                if (brokenRides[instanceId]) {
+                                    ctx.font = '20px sans-serif'; ctx.fillText("🔥", drawX + drawW / 2, drawY + drawH / 2 - 15);
+                                    ctx.font = '12px sans-serif'; ctx.fillStyle = 'red'; ctx.fillText("수리필요", drawX + drawW / 2, drawY + drawH / 2 + 15);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                trash.forEach(t => {
+                    ctx.font = '14px sans-serif'; ctx.fillText(t.type === 'vomit' ? "🤮" : "💩", t.x * TILE_SIZE + 16, t.y * TILE_SIZE + 16);
+                });
+
+                visitors.forEach(v => {
+                    const sx = v.x * TILE_SIZE + 16; const sy = v.y * TILE_SIZE + 16;
+                    ctx.fillStyle = v.color; ctx.beginPath(); ctx.arc(sx, sy - 4, 5, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#fca5a5'; ctx.beginPath(); ctx.arc(sx, sy - 9, 3, 0, Math.PI * 2); ctx.fill();
+                    if (v.state === 'queueing') { ctx.font = '10px sans-serif'; ctx.fillText("⏳", sx, sy - 15); }
+                });
+
+                staff.forEach(s => {
+                    const sx = s.x * TILE_SIZE + 16; const sy = s.y * TILE_SIZE + 16;
+                    const config = STAFF_TYPES[s.type];
+                    if (s.type === 'security') {
+                        ctx.fillStyle = 'rgba(96, 165, 250, 0.1)'; ctx.beginPath(); ctx.arc(sx, sy, TILE_SIZE * 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = 'rgba(96, 165, 250, 0.3)'; ctx.lineWidth = 1; ctx.stroke();
+                    }
+                    ctx.strokeStyle = config.color; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(sx, sy - 6, 8, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = config.color; ctx.beginPath(); ctx.arc(sx, sy - 4, 5, 0, Math.PI * 2); ctx.fill();
+                    ctx.font = '12px sans-serif'; ctx.fillText(config.icon, sx, sy - 18);
+                });
+
+                popups.forEach(p => {
+                    ctx.fillStyle = p.color; ctx.font = 'bold 12px sans-serif'; ctx.fillText(p.text, p.x, p.y);
+                });
+
+            }, [tiles, visitors, staff, trash, popups, brokenRides]);
+
+            const handleCanvasClick = (e) => {
+                const rect = canvasRef.current.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+                const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+
+                if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) return;
+                
+                if (BUILDINGS[selectedTool]) {
+                    if (money < 0) { setMessage("파산 상태! 건물을 지을 수 없습니다."); return; } 
+                    const building = BUILDINGS[selectedTool];
+                    if (money < building.cost) { setMessage("자금 부족!"); return; }
+                    for(let dy=0; dy<building.h; dy++) for(let dx=0; dx<building.w; dx++) if(tiles[y+dy]?.[x+dx] !== null) { setMessage("건설 불가 구역"); return; }
+                    
+                    const newTiles = tiles.map(r => [...r]);
+                    const iId = Date.now();
+                    for(let dy=0; dy<building.h; dy++) for(let dx=0; dx<building.w; dx++) newTiles[y+dy][x+dx] = { ...building, instanceId: iId, originX: x, originY: y };
+                    setTiles(newTiles);
+                    addMoney(-building.cost, false);
+                    addPopup(x, y, `-${building.cost}`, 'red');
+                }
+                else if (selectedTool === 'delete') {
+                    const t = tiles[y][x];
+                    if (t) {
+                        if (t.id === 'entrance') return;
+                        const newTiles = tiles.map(r => [...r]);
+                        const {originX, originY, w, h} = t;
+                        for(let dy=0; dy<h; dy++) for(let dx=0; dx<w; dx++) newTiles[originY+dy][originX+dx] = null;
+                        setTiles(newTiles);
+                        addMoney(50, true);
+                    }
+                }
+                else if (!selectedTool) {
+                    const t = tiles[y][x];
+                    if (t) {
+                        const usage = buildingUsage[t.instanceId] || 0;
+                        setMessage(`[${t.name}] 이용객: ${usage}/${t.capacity || '?'} (유지비: -${t.upkeep})`);
+                    }
+                }
+            };
+
+            const hireStaff = (type) => {
+                if (money < 0) { setMessage("파산 상태!"); return; }
+                const config = STAFF_TYPES[type];
+                if (money < config.cost) { setMessage("자금 부족"); return; }
+                addMoney(-config.cost, false);
+                setStaff(prev => [...prev, { id: Date.now(), type, x: GRID_WIDTH/2, y: GRID_HEIGHT-1, targetX: GRID_WIDTH/2, targetY: GRID_HEIGHT-1, state: 'idle' }]);
+                setMessage(`${config.name} 고용 완료!`);
+            };
+
+            const handleResearch = (project) => {
+                if (researchedProjects.includes(project.id)) return;
+                if (money < project.cost) return;
+                addMoney(-project.cost, false);
+                setResearchedProjects(prev => [...prev, project.id]);
+                setUnlockedItems(prev => [...prev, ...project.unlocks]);
+            };
+
+            return (
+                <div className="flex h-screen font-sans select-none overflow-hidden">
+                    {/* SIDEBAR */}
+                    <div className="w-80 flex-shrink-0 flex flex-col bg-slate-800 border-r border-slate-700 z-10 shadow-xl">
+                        <div className="p-4 border-b border-slate-700 bg-slate-900/50">
+                            <h1 className="text-xl font-bold text-yellow-400 flex items-center gap-2 mb-1">🎡 Retro Park v10</h1>
+                            <div className="flex justify-between items-center text-xs text-slate-400">
+                                <span>📅 {date.year}년 {date.month}월 {date.day}일</span>
+                                <span className="flex gap-1">
+                                    <button onClick={() => setGameSpeed(1)} className={`px-1.5 rounded ${gameSpeed === 1 ? 'bg-yellow-600 text-white' : 'bg-slate-700'}`}>1x</button>
+                                    <button onClick={() => setGameSpeed(4)} className={`px-1.5 rounded ${gameSpeed === 4 ? 'bg-yellow-600 text-white' : 'bg-slate-700'}`}>4x</button>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="p-4 grid grid-cols-3 gap-2 border-b border-slate-700">
+                            <ToolButton active={selectedTool === null} onClick={() => setSelectedTool(null)} icon={<Icons.MousePointer2 size={20} />} label="조회" />
+                            <ToolButton active={selectedTool === 'road'} onClick={() => setSelectedTool('road')} icon={<div className="w-4 h-4 bg-gray-400 rounded-sm" />} label="길" />
+                            <ToolButton active={selectedTool === 'delete'} onClick={() => setSelectedTool('delete')} icon={<Icons.Hammer size={20} />} label="철거" color="red" />
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                            <div className="mb-6 p-3 bg-slate-900/40 rounded-lg border border-slate-700">
+                                <SectionTitle>👥 직원 고용</SectionTitle>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {Object.values(STAFF_TYPES).map(s => (
+                                        <button key={s.id} onClick={() => hireStaff(s.id)} className="flex items-center gap-2 p-2 bg-slate-800 rounded border border-slate-600 hover:bg-slate-700">
+                                            <span className="text-xl">{s.icon}</span>
+                                            <div className="flex flex-col items-start">
+                                                <span className="text-xs font-bold">{s.name}</span>
+                                                <span className="text-[10px] text-yellow-400">-{s.cost}원</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <SectionTitle>🌲 편의시설</SectionTitle>
+                            <div className="grid grid-cols-4 gap-2 mb-4">
+                                <BuildButton item={BUILDINGS.tree} selected={selectedTool === 'tree'} onClick={() => setSelectedTool('tree')} unlocked={unlockedItems.includes('tree')} />
+                                <BuildButton item={BUILDINGS.bench} selected={selectedTool === 'bench'} onClick={() => setSelectedTool('bench')} unlocked={unlockedItems.includes('bench')} />
+                                <BuildButton item={BUILDINGS.trashcan} selected={selectedTool === 'trashcan'} onClick={() => setSelectedTool('trashcan')} unlocked={unlockedItems.includes('trashcan')} />
+                                <BuildButton item={BUILDINGS.toilet} selected={selectedTool === 'toilet'} onClick={() => setSelectedTool('toilet')} unlocked={unlockedItems.includes('toilet')} />
+                            </div>
+
+                            <SectionTitle>🍦 상점</SectionTitle>
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <BuildButton item={BUILDINGS.burger} selected={selectedTool === 'burger'} onClick={() => setSelectedTool('burger')} unlocked={unlockedItems.includes('burger')} />
+                                <BuildButton item={BUILDINGS.icecream} selected={selectedTool === 'icecream'} onClick={() => setSelectedTool('icecream')} unlocked={unlockedItems.includes('icecream')} />
+                            </div>
+                            
+                            <SectionTitle>🎢 놀이기구</SectionTitle>
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <BuildButton item={BUILDINGS.carousel} selected={selectedTool === 'carousel'} onClick={() => setSelectedTool('carousel')} unlocked={unlockedItems.includes('carousel')} />
+                                <BuildButton item={BUILDINGS.bumper} selected={selectedTool === 'bumper'} onClick={() => setSelectedTool('bumper')} unlocked={unlockedItems.includes('bumper')} />
+                                <BuildButton item={BUILDINGS.haunted} selected={selectedTool === 'haunted'} onClick={() => setSelectedTool('haunted')} unlocked={unlockedItems.includes('haunted')} />
+                                <BuildButton item={BUILDINGS.viking} selected={selectedTool === 'viking'} onClick={() => setSelectedTool('viking')} unlocked={unlockedItems.includes('viking')} />
+                                <BuildButton item={BUILDINGS.ferris} selected={selectedTool === 'ferris'} onClick={() => setSelectedTool('ferris')} unlocked={unlockedItems.includes('ferris')} />
+                                <BuildButton item={BUILDINGS.droptower} selected={selectedTool === 'droptower'} onClick={() => setSelectedTool('droptower')} unlocked={unlockedItems.includes('droptower')} />
+                                <BuildButton item={BUILDINGS.gyroswing} selected={selectedTool === 'gyroswing'} onClick={() => setSelectedTool('gyroswing')} unlocked={unlockedItems.includes('gyroswing')} />
+                                <BuildButton item={BUILDINGS.coaster} selected={selectedTool === 'coaster'} onClick={() => setSelectedTool('coaster')} unlocked={unlockedItems.includes('coaster')} />
+                            </div>
+
+                            <SectionTitle>🦁 동물원</SectionTitle>
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <BuildButton item={BUILDINGS.panda} selected={selectedTool === 'panda'} onClick={() => setSelectedTool('panda')} unlocked={unlockedItems.includes('panda')} />
+                                <BuildButton item={BUILDINGS.penguin} selected={selectedTool === 'penguin'} onClick={() => setSelectedTool('penguin')} unlocked={unlockedItems.includes('penguin')} />
+                                <BuildButton item={BUILDINGS.lion} selected={selectedTool === 'lion'} onClick={() => setSelectedTool('lion')} unlocked={unlockedItems.includes('lion')} />
+                                <BuildButton item={BUILDINGS.giraffe} selected={selectedTool === 'giraffe'} onClick={() => setSelectedTool('giraffe')} unlocked={unlockedItems.includes('giraffe')} />
+                                <BuildButton item={BUILDINGS.elephant} selected={selectedTool === 'elephant'} onClick={() => setSelectedTool('elephant')} unlocked={unlockedItems.includes('elephant')} />
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-slate-700 bg-slate-900">
+                            <button onClick={() => setShowResearchModal(true)} className="w-full py-3 rounded-lg font-bold flex justify-center items-center gap-2 bg-slate-800 text-blue-400 hover:bg-slate-700">
+                                <Icons.Beaker size={18} /> 연구소
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* RIGHT MAIN */}
+                    <div className="flex-1 flex flex-col relative bg-slate-950">
+                        <div className="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 shadow-md z-10">
+                            <div className="flex gap-6 items-center">
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center ${money < 0 ? 'text-red-500' : 'text-green-400'}`}>
+                                            {money < 0 ? <Icons.AlertTriangle size={16}/> : <Icons.Coins size={16} />}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-slate-400 uppercase">자금</span>
+                                            <span className={`font-mono font-bold text-lg ${money < 0 ? 'text-red-500' : 'text-green-400'}`}>{money.toLocaleString()}원</span>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] text-red-400 pl-10">예상 지출: -{estimatedExpenses.toLocaleString()}원/월</span>
+                                </div>
+
+                                <Stat icon={<Icons.Users size={16} />} label="방문객" value={`${visitors.length}명`} color="text-blue-400" />
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm text-yellow-200 truncate max-w-[300px]">📢 {message}</span>
+                                <button onClick={() => setIsPlaying(!isPlaying)} className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-bold ${isPlaying ? 'bg-slate-700 text-yellow-500' : 'bg-green-600'}`}>
+                                    {isPlaying ? <Icons.Pause size={14}/> : <Icons.Play size={14}/>} {isPlaying ? '일시정지' : '시작'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-auto flex items-center justify-center p-8 relative bg-slate-950">
+                            <div className="relative shadow-2xl rounded-xl border-4 border-slate-800 overflow-hidden bg-green-900">
+                                <canvas 
+                                    ref={canvasRef}
+                                    width={GRID_WIDTH * TILE_SIZE}
+                                    height={GRID_HEIGHT * TILE_SIZE}
+                                    onClick={handleCanvasClick}
+                                    className="cursor-crosshair block"
+                                    style={{ imageRendering: 'pixelated' }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* MODALS */}
+                        {showResearchModal && (
+                            <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-12">
+                                <div className="bg-slate-800 w-full max-w-xl rounded-xl p-6 border border-slate-600">
+                                    <div className="flex justify-between mb-4">
+                                        <h2 className="text-xl font-bold">🧪 연구소</h2>
+                                        <button onClick={() => setShowResearchModal(false)}>닫기</button>
+                                    </div>
+                                    <div className="space-y-2 h-96 overflow-y-auto custom-scrollbar">
+                                        {RESEARCH_PROJECTS.map(p => (
+                                            <div key={p.id} className="flex justify-between items-center bg-slate-700 p-3 rounded">
+                                                <div><div className="font-bold">{p.name}</div><div className="text-xs text-slate-400">{p.desc}</div></div>
+                                                <button disabled={researchedProjects.includes(p.id) || money < p.cost || (p.req && !researchedProjects.includes(p.req))} onClick={() => handleResearch(p)} className="px-3 py-1 bg-blue-600 rounded disabled:bg-slate-600">
+                                                    {researchedProjects.includes(p.id) ? '완료' : `${p.cost}원`}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {showReport && (
+                            <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center">
+                                <div className="bg-slate-800 w-96 rounded-xl p-6 border-2 border-yellow-500 shadow-2xl transform scale-105">
+                                    <h2 className="text-2xl font-bold text-center text-yellow-400 mb-6 border-b border-slate-600 pb-2">
+                                        📅 {showReport.year}년 {showReport.month}월 결산
+                                    </h2>
+                                    <div className="space-y-4 font-mono">
+                                        <div className="flex justify-between text-green-400"><span>총 수입</span><span>+ {showReport.income.toLocaleString()}</span></div>
+                                        <div className="flex justify-between text-red-400"><span>총 지출 (인건비+유지비)</span><span>- {showReport.expenses.toLocaleString()}</span></div>
+                                        <div className="border-t border-slate-600 pt-2 flex justify-between text-xl font-bold mt-4"><span>순수익</span><span className={showReport.total >= 0 ? 'text-green-400' : 'text-red-500'}>{showReport.total >= 0 ? '+' : ''}{showReport.total.toLocaleString()}</span></div>
+                                    </div>
+                                    <button onClick={() => { setShowReport(null); setIsPlaying(true); }} className="w-full mt-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-lg transition-colors">확인 (다음 달 시작)</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Sub-Components
+        function Stat({ icon, label, value, color }) {
+            return (
+                <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center ${color}`}>{icon}</div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400 uppercase">{label}</span>
+                        <span className={`font-mono font-bold text-lg ${color}`}>{value}</span>
+                    </div>
+                </div>
+            );
+        }
+
+        function SectionTitle({ children }) {
+            return <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{children}</h3>;
+        }
+
+        function ToolButton({ active, onClick, icon, label, color }) {
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center justify-center p-2 rounded ${active ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
+                    {icon}<span className="text-[10px] mt-1">{label}</span>
+                </button>
+            );
+        }
+
+        function BuildButton({ item, selected, onClick, unlocked }) {
+            return (
+                <button onClick={unlocked ? onClick : undefined} disabled={!unlocked} className={`relative flex flex-col items-center justify-center h-16 rounded border ${selected ? 'border-yellow-400 bg-slate-700' : 'border-slate-700 bg-slate-800'} ${!unlocked && 'opacity-30'}`}>
+                    <span className="text-xl">{item.icon}</span>
+                    <span className="text-[9px] mt-1 text-center w-full truncate px-1">{unlocked ? item.name : '???'}</span>
+                    {!unlocked && <Icons.Lock size={12} className="absolute top-1 right-1 text-slate-500"/>}
+                </button>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RetroParkTycoon />);
+    </script>
+</body>
+</html>
