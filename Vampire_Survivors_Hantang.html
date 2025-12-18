@@ -407,11 +407,11 @@
             beam.position.copy(playerGroup.position);
             beam.position.y = 1;
             
-            // 타겟 방향 바라보기
+            // 타겟 방향 바라보기 (높이 고정)
             beam.lookAt(target.position.x, 1, target.position.z);
             
-            // 방향 벡터 계산
-            const dir = new THREE.Vector3().subVectors(target.position, playerGroup.position).normalize();
+            // 방향 벡터 계산 (Y축 제거하여 수평 발사 보장)
+            const dir = new THREE.Vector3(target.position.x - playerGroup.position.x, 0, target.position.z - playerGroup.position.z).normalize();
             
             beam.userData = { 
                 velocity: dir.multiplyScalar(0.4), 
@@ -631,7 +631,11 @@
                 // 충돌 처리
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     const enemy = enemies[j];
-                    if (p.position.distanceTo(enemy.position) < 1.0) {
+                    
+                    // 2D 거리 체크 (Y축 무시, 1.5 범위로 확대하여 피격 판정 개선)
+                    const distSq = (p.position.x - enemy.position.x)**2 + (p.position.z - enemy.position.z)**2;
+                    
+                    if (distSq < 1.5 * 1.5) {
                         // 이미 맞은 적은 패스 (관통 무기용)
                         if (p.userData.hitList && p.userData.hitList.includes(enemy.id)) continue;
 
