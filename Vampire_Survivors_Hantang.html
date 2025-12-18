@@ -98,34 +98,6 @@
             text-shadow: 1px 1px 2px #000; z-index: 5;
         }
         @keyframes popUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(0.8); } }
-
-        /* 체력바 스타일 */
-        .hp-bar-container {
-            position: absolute;
-            width: 50px; height: 6px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid #000;
-            border-radius: 3px;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-            display: none; /* JS로 제어 */
-        }
-        .hp-bar-fill {
-            height: 100%;
-            background: #ff0000;
-            width: 100%;
-            border-radius: 2px;
-            transition: width 0.1s;
-        }
-        .player-hp-bar .hp-bar-fill {
-            background: #00ff00; /* 플레이어는 초록색 */
-        }
-        .boss-hp-bar {
-            width: 100px; height: 10px; border: 2px solid #ffaa00;
-        }
-        .boss-hp-bar .hp-bar-fill {
-            background: #ffaa00;
-        }
     </style>
 </head>
 <body>
@@ -150,7 +122,7 @@
         </div>
 
         <div id="damage-layer"></div>
-        <div id="hp-bars-layer"></div> <!-- 체력바 레이어 -->
+        <!-- hp-bars-layer 제거 (성능 최적화 위해 3D 체력바로 대체) -->
     </div>
 
     <!-- 레벨업 모달 -->
@@ -237,12 +209,25 @@
         playerFallback.castShadow = true;
         playerGroup.add(playerFallback);
 
-        // 플레이어 체력바 생성
-        const playerHpBar = document.createElement('div');
-        playerHpBar.className = 'hp-bar-container player-hp-bar';
-        playerHpBar.innerHTML = '<div class="hp-bar-fill"></div>';
-        document.getElementById('hp-bars-layer').appendChild(playerHpBar);
-        playerHpBar.style.display = 'block';
+        // ★ 최적화: 3D 체력바 지오메트리 및 재질 미리 생성 (공유) ★
+        const hpBarBgGeo = new THREE.PlaneGeometry(1, 0.15);
+        const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x333333, depthTest: false }); // 배경 (회색)
+        
+        const hpBarFgGeo = new THREE.PlaneGeometry(1, 0.15);
+        hpBarFgGeo.translate(0.5, 0, 0); // 왼쪽 기준 스케일링을 위해 이동
+        const hpBarFgMatRed = new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false }); // 적군 (빨강)
+        const hpBarFgMatGreen = new THREE.MeshBasicMaterial({ color: 0x00ff00, depthTest: false }); // 플레이어 (초록)
+        const hpBarFgMatBoss = new THREE.MeshBasicMaterial({ color: 0xffaa00, depthTest: false }); // 보스 (주황)
+
+        // 플레이어용 3D 체력바 생성
+        const playerHpBarGroup = new THREE.Group();
+        playerHpBarGroup.position.y = 2.0;
+        const pBg = new THREE.Mesh(hpBarBgGeo, hpBarBgMat);
+        const pFg = new THREE.Mesh(hpBarFgGeo, hpBarFgMatGreen);
+        pFg.position.x = -0.5; // 배경 왼쪽 끝에서 시작하도록 맞춤 (지오메트리가 0.5 이동되어 있으므로)
+        pFg.position.z = 0.01; // z-fighting 방지
+        playerHpBarGroup.add(pBg, pFg);
+        playerGroup.add(playerHpBarGroup);
 
         let playerMixer;
         loader.load('./player.glb', (gltf) => {
@@ -255,7 +240,6 @@
             if(gltf.animations.length > 0) playerMixer.clipAction(gltf.animations[0]).play();
         }, undefined, () => console.log('Player model not found. Using box.'));
 
-        // 적 모델 미리 로드
         loader.load('./male_enemy.glb', (gltf) => { loadedModels.maleEnemy = gltf; }, undefined, () => {});
         loader.load('./female_enemy.glb', (gltf) => { loadedModels.femaleEnemy = gltf; }, undefined, () => {});
 
@@ -274,11 +258,11 @@
             isPlaying: true, isPaused: false, time: 0,
             level: 1, exp: 0, maxExp: 10, kills: 0,
             hp: 100, maxHp: 100,
-            bombs: 1, // 초기 필살기 개수
-            bombTimer: 0, // 자동 충전 타이머
-            quoteChance: 0 // 대사 출력 확률 (0 ~ 20)
+            bombs: 1, 
+            bombTimer: 0, 
+            quoteChance: 0 
         };
-        const BOMB_COOLDOWN_TIME = 300; // 300초 = 5분
+        const BOMB_COOLDOWN_TIME = 300; 
 
         const playerStats = {
             moveSpeed: 0.15, 
@@ -290,12 +274,11 @@
 
         const inventory = {
             qrBeam: { level: 1, active: true, name: "QR코드 빔", type: "weapon", cooldown: 0.8, lastShot: 0, damage: 10 },
-            // NFT 계약서: 기본 패시브. 레벨업 시 던질 확률과 보스 데미지 증가.
             nftContract: { 
                 level: 0, active: true, name: "NFT 계약서", type: "passive", 
                 desc: "공격 시 일정 확률로 계약서 투척. 일반적 즉사, 보스 최대 체력 비례 피해.", 
-                throwChance: 0.01, // 기본 던질 확률 1%
-                bossDmgRate: 0.10 // 기본 보스 데미지 10%
+                throwChance: 0.01, 
+                bossDmgRate: 0.10 
             },
             mist: { level: 0, active: false, name: "타지리 미스트", type: "weapon", cooldown: 0.5, lastTick: 0, damage: 3, range: 4 },
             chunjat: { level: 0, active: false, name: "춘잣", type: "passive", effect: "speed", val: 0.05 },
@@ -316,50 +299,55 @@
             boss: ["내가.. 내가 해고라니!!", "퇴직금은..?", "회식.. 가야지.."]
         };
 
+        const MAX_ENEMIES = 100; // 최적화를 위한 최대 적 수 제한
+
         // ==========================================
         // 4. 게임 로직
         // ==========================================
         window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = true; });
         window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = false; });
 
-        function createHpBar(entity, isPlayer = false, isBoss = false) {
-            if (isPlayer) return playerHpBar;
-            const bar = document.createElement('div');
-            bar.className = isBoss ? 'hp-bar-container boss-hp-bar' : 'hp-bar-container';
-            bar.innerHTML = '<div class="hp-bar-fill"></div>';
-            document.getElementById('hp-bars-layer').appendChild(bar);
-            bar.style.display = 'block';
-            return bar;
+        function update3DHpBar(mesh, hp, maxHp) {
+            // 자식 중 HP Bar 그룹 찾기
+            const barGroup = mesh.children.find(c => c.userData.isHpBar);
+            if (barGroup) {
+                const fg = barGroup.children[1];
+                const pct = Math.max(0, hp / maxHp);
+                fg.scale.x = pct;
+                barGroup.lookAt(camera.position); // 항상 카메라 정면 보기 (빌보드)
+            }
         }
 
-        function updateHpBar(entity, bar, offsetY = 2.0) {
-            if (!entity || !bar) return;
-            // 3D 좌표를 2D 화면 좌표로 변환
-            const pos = entity.position.clone();
-            pos.y += offsetY; // 머리 위
-            pos.project(camera);
+        function create3DHpBar(type) {
+            const group = new THREE.Group();
+            group.userData.isHpBar = true; // 식별용 태그
             
-            const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-            const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
+            const bg = new THREE.Mesh(hpBarBgGeo, hpBarBgMat);
+            
+            let mat = hpBarFgMatRed;
+            let scaleY = 1;
+            let width = 1;
 
-            // 화면 밖이면 숨김
-            if (pos.z > 1 || x < 0 || x > window.innerWidth || y < 0 || y > window.innerHeight) {
-                bar.style.display = 'none';
-            } else {
-                bar.style.display = 'block';
-                bar.style.left = `${x}px`;
-                bar.style.top = `${y}px`;
+            if (type === 'boss') {
+                mat = hpBarFgMatBoss;
+                scaleY = 2; // 보스는 두껍게
+                width = 3;
             }
 
-            // 체력 비율 업데이트
-            const hp = isNaN(entity.userData.hp) ? gameState.hp : entity.userData.hp;
-            const maxHp = isNaN(entity.userData.maxHp) ? gameState.maxHp : entity.userData.maxHp;
-            const pct = Math.max(0, (hp / maxHp) * 100);
-            bar.querySelector('.hp-bar-fill').style.width = `${pct}%`;
+            const fg = new THREE.Mesh(hpBarFgGeo, mat);
+            fg.position.x = -0.5 * width; 
+            fg.position.z = 0.01;
+            
+            bg.scale.set(width, scaleY, 1);
+            fg.scale.set(width, scaleY, 1); // 초기 스케일 (가득 참) - 단, x는 나중에 update로 조절됨
+
+            group.add(bg, fg);
+            return group;
         }
 
         function spawnEnemy(isBoss = false) {
             if (gameState.isPaused) return;
+            if (enemies.length >= MAX_ENEMIES && !isBoss) return; // 적 숫자 제한
 
             const angle = Math.random() * Math.PI * 2;
             const distance = 15 + Math.random() * 10;
@@ -378,7 +366,6 @@
             let mixer = null;
 
             if (type === 'boss') {
-                // 보스: 거대한 빨간 박스 or 모델
                 const geo = new THREE.BoxGeometry(2, 4, 2);
                 const mat = new THREE.MeshStandardMaterial({ color: 0xff4400 });
                 enemyMesh = new THREE.Mesh(geo, mat);
@@ -408,16 +395,21 @@
                     enemyMesh.position.y = 0.75;
                 }
             }
+            
+            // 그림자 - 성능을 위해 보스만 true, 일반 몹은 끄거나 유지 (여기선 유지하되, 너무 느리면 끄기)
             enemyMesh.traverse(o => { if(o.isMesh) o.castShadow = true; });
+            
             enemyMesh.position.set(x, isBoss ? 2 : 0, z);
             if (!loadedModels[type + 'Enemy'] && type !== 'boss') enemyMesh.position.y = 0.75;
 
             let hp = 15 + (gameState.time * 0.5);
             if (type === 'female') hp *= 0.7;
-            if (type === 'boss') hp = hp * 50 + 500; // 보스 체력 빵빵하게
+            if (type === 'boss') hp = hp * 50 + 500; 
 
-            // 체력바 생성
-            const hpBar = createHpBar(enemyMesh, false, isBoss);
+            // 3D 체력바 생성 및 부착
+            const hpBar = create3DHpBar(type);
+            hpBar.position.y = isBoss ? 2.5 : 2.0;
+            enemyMesh.add(hpBar);
 
             enemyMesh.userData = { 
                 type: type, 
@@ -426,8 +418,7 @@
                 speed: type === 'boss' ? 0.03 : (type === 'female' ? 0.04 : 0.05), 
                 attackCooldown: 0, 
                 mixer: mixer, 
-                hpBar: hpBar,
-                isBoss: isBoss // 보스 플래그
+                isBoss: isBoss 
             };
             scene.add(enemyMesh);
             enemies.push(enemyMesh);
@@ -500,9 +491,6 @@
             updateBombUI();
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
-                // HP바 제거
-                if(enemy.userData.hpBar) enemy.userData.hpBar.remove();
-                
                 spawnGem(enemy.position, 1);
                 gameState.kills++;
                 scene.remove(enemy);
@@ -535,9 +523,6 @@
                     if (info.enemy && info.dist < 15) { 
                         shootQR(info.enemy); 
                         
-                        // NFT 계약서 발동 로직 (던질 확률 체크)
-                        // 레벨 0(미습득)이어도 기본 확률 1%로 발동
-                        // 레벨 1~5: 확률 및 데미지 증가
                         const chance = inventory.nftContract.throwChance;
                         if (Math.random() < chance) {
                             throwContract();
@@ -580,14 +565,12 @@
             const angle = Math.random() * Math.PI * 2;
             const dir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)).normalize();
             
-            // NFT 계약서는 즉사(일반) or 비례데미지(보스)
-            // 투사체 정보에 보스 데미지 비율 저장
             paper.userData = { 
                 type: 'contract', 
                 velocity: dir.multiplyScalar(0.3), 
                 bossDmgRate: inventory.nftContract.bossDmgRate,
                 duration: 3, 
-                pierce: 5, // 관통력 높게
+                pierce: 5, 
                 hitList: [] 
             };
             scene.add(paper); projectiles.push(paper);
@@ -612,7 +595,6 @@
             }});
 
             if (enemy.userData.hp <= 0) {
-                // 사망 대사 출력 (확률: gameState.quoteChance %)
                 if (Math.random() * 100 < gameState.quoteChance) {
                     const quotes = deathQuotes[enemy.userData.type];
                     if (quotes) {
@@ -621,12 +603,8 @@
                     }
                 }
 
-                // 체력바 제거
-                if(enemy.userData.hpBar) enemy.userData.hpBar.remove();
-
-                spawnGem(enemy.position, enemy.userData.isBoss ? 50 : 1); // 보스는 경험치 많이
+                spawnGem(enemy.position, enemy.userData.isBoss ? 50 : 1); 
                 
-                // 민초 드랍 (1% 확률)
                 if (Math.random() < 0.01) spawnMincho(enemy.position);
 
                 gameState.kills++;
@@ -698,9 +676,7 @@
             item.active = true; item.level++;
             if (key === 'qrBeam') { item.damage += 5; item.cooldown *= 0.9; }
             else if (key === 'nftContract') { 
-                // 레벨업 시 던질 확률 1% 증가 (최대 5%)
-                item.throwChance = Math.min(0.05, 0.01 * (item.level + 1)); // Lv0->1%.. Lv4->5%
-                // 보스 데미지 비율 증가 (최대 25%)
+                item.throwChance = Math.min(0.05, 0.01 * (item.level + 1)); 
                 item.bossDmgRate = Math.min(0.25, 0.10 + (item.level * 0.03)); 
             }
             else if (key === 'mist') { item.damage += 2; item.range += 0.5; }
@@ -734,7 +710,6 @@
 
             gameState.time++;
 
-            // 대사 출력 확률 업데이트 (10초마다 1% 증가, 최대 20%)
             if (gameState.time % 10 === 0) {
                 gameState.quoteChance = Math.min(20, gameState.quoteChance + 1);
             }
@@ -750,13 +725,11 @@
 
             const delta = clock.getDelta();
 
-            // 필살기 입력
             if (keys[' ']) {
                 useBomb();
                 keys[' '] = false;
             }
 
-            // 필살기 자동 충전
             gameState.bombTimer += delta;
             if (gameState.bombTimer >= BOMB_COOLDOWN_TIME) {
                 gameState.bombs++;
@@ -766,7 +739,6 @@
             const bombPct = Math.min(100, Math.floor((gameState.bombTimer / BOMB_COOLDOWN_TIME) * 100));
             document.getElementById('bomb-cooldown').innerText = `(${bombPct}%)`;
 
-            // 플레이어 이동
             const moveDir = new THREE.Vector3(0, 0, 0);
             if (keys.w || keys.ArrowUp) moveDir.z -= 1;
             if (keys.s || keys.ArrowDown) moveDir.z += 1;
@@ -780,7 +752,6 @@
                 if(playerMixer) playerGroup.children.forEach(c => { if(c.isGroup) c.rotation.y = targetRot; });
             }
 
-            // 카메라 팔로우
             camera.position.x = playerGroup.position.x + 20;
             camera.position.z = playerGroup.position.z + 20;
             dirLight.position.x = playerGroup.position.x + 10;
@@ -788,14 +759,11 @@
             ground.position.x = playerGroup.position.x;
             ground.position.z = playerGroup.position.z;
 
-            // 로직 업데이트
             fireWeapons(delta);
             if (playerMixer) playerMixer.update(delta);
 
-            // 플레이어 체력바 업데이트
-            updateHpBar(playerGroup.children[0], playerHpBar); 
+            update3DHpBar(playerHpBarGroup, gameState.hp, gameState.maxHp); 
 
-            // 투사체 업데이트
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i];
                 p.position.add(p.userData.velocity);
@@ -805,18 +773,22 @@
 
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     const enemy = enemies[j];
-                    const distSq = (p.position.x - enemy.position.x)**2 + (p.position.z - enemy.position.z)**2;
-                    if (distSq < 1.5 * 1.5) {
+                    // ★ 2D 거리 체크로 변경 (Y축 무시) ★
+                    // p.position (투사체) vs enemy.position (적)
+                    // 투사체가 공중(y=1)에 있고 적은 바닥(y=0)에 있어도 x, z 거리만 가까우면 맞음
+                    const dx = p.position.x - enemy.position.x;
+                    const dz = p.position.z - enemy.position.z;
+                    const distSq = dx*dx + dz*dz;
+                    
+                    // 반경 1.5 (거리제곱 2.25) 이내면 충돌
+                    if (distSq < 2.25) {
                         if (p.userData.hitList && p.userData.hitList.includes(enemy.id)) continue;
                         
-                        // 데미지 계산 (계약서 특수 로직)
                         let damage = p.userData.damage;
                         if (p.userData.type === 'contract') {
                             if (enemy.userData.isBoss) {
-                                // 보스: 최대 체력 비례 데미지
                                 damage = enemy.userData.maxHp * p.userData.bossDmgRate;
                             } else {
-                                // 일반: 즉사 (HP만큼 데미지)
                                 damage = enemy.userData.hp;
                             }
                         }
@@ -824,20 +796,23 @@
                         takeDamage(enemy, damage);
                         if (p.userData.hitList) p.userData.hitList.push(enemy.id);
                         
-                        // 관통 처리
                         if (p.userData.type !== 'contract') { scene.remove(p); projectiles.splice(i, 1); break; }
                         else if (p.userData.hitList.length >= p.userData.pierce) { scene.remove(p); projectiles.splice(i, 1); break; }
                     }
                 }
             }
 
-            // 적 투사체
             for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
                 const ep = enemyProjectiles[i];
                 ep.position.add(ep.userData.velocity);
                 ep.userData.duration -= delta;
-                const pDist = ep.position.distanceTo(playerGroup.position);
-                if (pDist < 1.0) {
+                
+                // ★ 적 투사체도 플레이어와 2D 거리 체크 ★
+                const dx = ep.position.x - playerGroup.position.x;
+                const dz = ep.position.z - playerGroup.position.z;
+                const distSq = dx*dx + dz*dz;
+                
+                if (distSq < 1.0) { // 플레이어 히트박스 반경 1.0
                     damagePlayer(ep.userData.damage);
                     scene.remove(ep);
                     enemyProjectiles.splice(i, 1);
@@ -846,10 +821,8 @@
                 if (ep.userData.duration <= 0) { scene.remove(ep); enemyProjectiles.splice(i, 1); }
             }
 
-            // 적 AI
             enemies.forEach(enemy => {
-                // 체력바 업데이트
-                updateHpBar(enemy, enemy.userData.hpBar, enemy.userData.isBoss ? 4.5 : 2.0);
+                update3DHpBar(enemy, enemy.userData.hp, enemy.userData.maxHp);
 
                 if (enemy.userData.mixer) enemy.userData.mixer.update(delta);
                 const distToPlayer = enemy.position.distanceTo(playerGroup.position);
@@ -869,7 +842,6 @@
                 enemy.lookAt(playerGroup.position);
             });
 
-            // 보석 습득
             for (let i = gems.length - 1; i >= 0; i--) {
                 const gem = gems[i];
                 const dist = playerGroup.position.distanceTo(gem.position);
@@ -880,7 +852,6 @@
                 } else { gem.rotation.y += 0.05; }
             }
 
-            // 민초 습득
             for (let i = minchos.length - 1; i >= 0; i--) {
                 const m = minchos[i];
                 const dist = playerGroup.position.distanceTo(m.position);
