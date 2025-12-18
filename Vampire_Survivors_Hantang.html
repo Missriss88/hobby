@@ -64,9 +64,11 @@
         }
         .start-btn:hover { transform: scale(1.1); box-shadow: 0 0 40px rgba(255, 0, 85, 0.8); }
         .camera-label-container {
-            position: absolute; bottom: 10%; width: 100%; display: flex; justify-content: space-around;
-            pointer-events: none; color: rgba(255,255,255,0.5); font-size: 20px;
+            position: absolute; bottom: 10%; width: 100%; display: flex; justify-content: center; gap: 40px;
+            pointer-events: none; color: rgba(255,255,255,0.3); font-size: 20px;
         }
+        .cam-label { transition: all 0.5s; }
+        .cam-active { color: #00ffff; font-weight: bold; transform: scale(1.2); text-shadow: 0 0 10px #00ffff; opacity: 1; }
 
         /* 레벨업 선택창 */
         #levelup-modal {
@@ -188,9 +190,9 @@
         <div class="start-title">한탕이의 생존 신고</div>
         <button class="start-btn" id="start-btn">생존 시작</button>
         <div class="camera-label-container">
-            <div>CAM 1: 얼짱 각도</div>
-            <div>CAM 2: 전신 스캔</div>
-            <div>CAM 3: 위성 감시</div>
+            <div id="cam-label-0" class="cam-label cam-active">CAM 1: 얼짱 각도</div>
+            <div id="cam-label-1" class="cam-label">CAM 2: 전신 스캔</div>
+            <div id="cam-label-2" class="cam-label">CAM 3: 위성 감시</div>
         </div>
     </div>
 
@@ -240,15 +242,15 @@
         camera.updateProjectionMatrix();
 
         // ★ 시작 화면용 카메라 3개 생성 (Perspective) ★
-        const startCam1 = new THREE.PerspectiveCamera(45, window.innerWidth / 3 / window.innerHeight, 0.1, 100);
+        const startCam1 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         startCam1.position.set(2, 1.5, 2); // 얼굴/상체 근접
         startCam1.lookAt(0, 1, 0);
 
-        const startCam2 = new THREE.PerspectiveCamera(45, window.innerWidth / 3 / window.innerHeight, 0.1, 100);
+        const startCam2 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         startCam2.position.set(0, 2, 6); // 전신 정면
         startCam2.lookAt(0, 1, 0);
 
-        const startCam3 = new THREE.PerspectiveCamera(45, window.innerWidth / 3 / window.innerHeight, 0.1, 100);
+        const startCam3 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         startCam3.position.set(0, 10, 0); // 완전 탑뷰
         startCam3.lookAt(0, 0, 0);
 
@@ -346,7 +348,9 @@
             hp: 100, maxHp: 100,
             bombs: 1, 
             bombTimer: 0, 
-            quoteChance: 0 
+            quoteChance: 0,
+            cameraIndex: 0, // 현재 활성화된 카메라 인덱스
+            cameraTimer: 0 // 카메라 전환 타이머
         };
         const BOMB_COOLDOWN_TIME = 300; 
 
@@ -832,29 +836,18 @@
                 // 플레이어 살짝 회전
                 playerGroup.rotation.y += delta * 0.5;
 
-                // 화면 3분할 렌더링
-                const w = window.innerWidth;
-                const h = window.innerHeight;
-                const third = Math.floor(w / 3);
+                // 카메라 자동 전환 (3초마다)
+                gameState.cameraTimer += delta;
+                if (gameState.cameraTimer >= 3.0) {
+                    gameState.cameraTimer = 0;
+                    document.getElementById(`cam-label-${gameState.cameraIndex}`).classList.remove('cam-active');
+                    gameState.cameraIndex = (gameState.cameraIndex + 1) % 3;
+                    document.getElementById(`cam-label-${gameState.cameraIndex}`).classList.add('cam-active');
+                }
 
-                renderer.setScissorTest(true);
-
-                // 왼쪽 (얼굴/상체)
-                renderer.setViewport(0, 0, third, h);
-                renderer.setScissor(0, 0, third, h);
-                renderer.render(scene, startCam1);
-
-                // 중앙 (전신)
-                renderer.setViewport(third, 0, third, h);
-                renderer.setScissor(third, 0, third, h);
-                renderer.render(scene, startCam2);
-
-                // 오른쪽 (탑뷰)
-                renderer.setViewport(third * 2, 0, third, h);
-                renderer.setScissor(third * 2, 0, third, h);
-                renderer.render(scene, startCam3);
-
-                renderer.setScissorTest(false);
+                // 단일 뷰포트 렌더링
+                const cams = [startCam1, startCam2, startCam3];
+                renderer.render(scene, cams[gameState.cameraIndex]);
                 return; // 게임 로직 건너뜀
             }
 
@@ -1013,9 +1006,9 @@
             camera.updateProjectionMatrix();
 
             // 시작 화면 카메라 업데이트
-            startCam1.aspect = window.innerWidth / 3 / window.innerHeight; startCam1.updateProjectionMatrix();
-            startCam2.aspect = window.innerWidth / 3 / window.innerHeight; startCam2.updateProjectionMatrix();
-            startCam3.aspect = window.innerWidth / 3 / window.innerHeight; startCam3.updateProjectionMatrix();
+            startCam1.aspect = window.innerWidth / window.innerHeight; startCam1.updateProjectionMatrix();
+            startCam2.aspect = window.innerWidth / window.innerHeight; startCam2.updateProjectionMatrix();
+            startCam3.aspect = window.innerWidth / window.innerHeight; startCam3.updateProjectionMatrix();
 
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
