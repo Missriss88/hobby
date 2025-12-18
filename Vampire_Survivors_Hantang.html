@@ -18,7 +18,7 @@
         #top-bar {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 20px; align-items: center;
-            opacity: 0; transition: opacity 0.5s; /* 시작 전엔 숨김 */
+            opacity: 0; transition: opacity 0.5s;
         }
         .stat-box {
             background: rgba(0, 0, 0, 0.7); padding: 10px 20px; border-radius: 15px;
@@ -129,60 +129,22 @@
             text-shadow: 1px 1px 2px #000; z-index: 5;
         }
         @keyframes popUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(0.8); } }
-
-        /* 체력바 스타일 */
-        .hp-bar-container {
-            position: absolute;
-            width: 50px; height: 6px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid #000;
-            border-radius: 3px;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-            display: none; /* JS로 제어 */
-        }
-        .hp-bar-fill {
-            height: 100%;
-            background: #ff0000;
-            width: 100%;
-            border-radius: 2px;
-            transition: width 0.1s;
-        }
-        .player-hp-bar .hp-bar-fill {
-            background: #00ff00; /* 플레이어는 초록색 */
-        }
-        .boss-hp-bar {
-            width: 100px; height: 10px; border: 2px solid #ffaa00;
-        }
-        .boss-hp-bar .hp-bar-fill {
-            background: #ffaa00;
-        }
     </style>
 </head>
 <body>
-    <!-- 3D 캔버스 -->
     <div id="canvas-container"></div>
-
-    <!-- UI 레이어 -->
     <div id="exp-bar-container"><div id="exp-bar"></div></div>
     
     <div id="ui-layer">
         <div id="level-indicator">LV. <span id="level-val">1</span></div>
-        
         <div id="top-bar">
             <div class="stat-box" id="hp-box">HP <span id="hp-val">100</span></div>
             <div class="stat-box" id="bomb-box">💣 <span id="bomb-val">1</span> <span id="bomb-cooldown" style="font-size:14px; color:#aaa; margin-left:5px;">(0%)</span></div>
             <div class="stat-box">TIME <span id="timer">00:00</span></div>
             <div class="stat-box">KILL <span id="kill-count">0</span></div>
         </div>
-        
-        <div id="ult-guide">
-            [SPACE] 필살기: 화면 전체 공격 (5분 쿨타임 / 민초 획득 시 충전)
-        </div>
-
+        <div id="ult-guide">[SPACE] 필살기: 화면 전체 공격</div>
         <div id="damage-layer"></div>
-        <!-- hp-bars-layer: 3D 체력바로 대체되어 돔 요소는 제거하지 않고 그대로 두되 게임 시작 전에는 숨김 처리 -->
-        <div id="hp-bars-layer" style="display:none"></div> 
     </div>
 
     <!-- 시작 화면 -->
@@ -196,13 +158,11 @@
         </div>
     </div>
 
-    <!-- 레벨업 모달 -->
     <div id="levelup-modal">
         <div class="modal-title">레벨 업!</div>
         <div class="card-container" id="upgrade-cards"></div>
     </div>
 
-    <!-- 게임 오버 화면 -->
     <div id="game-over-screen">
         <div class="go-title">사 망</div>
         <div class="go-score">최종 기록: <span id="final-time">00:00</span> / 처치: <span id="final-kills">0</span></div>
@@ -224,13 +184,38 @@
         import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
         // ==========================================
+        // [최적화 1] 전역 변수 및 지오메트리/재질 미리 생성 (재사용)
+        // ==========================================
+        const _tempVec1 = new THREE.Vector3(); // 임시 벡터 1
+        const _tempVec2 = new THREE.Vector3(); // 임시 벡터 2
+        let activeDamageTextCount = 0; // 활성 데미지 텍스트 수
+
+        // 투사체 지오메트리/재질 공유
+        const qrGeo = new THREE.BoxGeometry(0.2, 0.2, 0.8);
+        const qrMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        
+        const contractGeo = new THREE.BoxGeometry(0.8, 0.1, 0.5);
+        const contractMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        
+        const heartGeo = new THREE.SphereGeometry(0.4, 8, 8);
+        const heartMat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0x550000 });
+
+        // 체력바 지오메트리/재질 공유
+        const hpBarBgGeo = new THREE.PlaneGeometry(1, 0.15);
+        const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x333333, depthTest: false });
+        const hpBarFgGeo = new THREE.PlaneGeometry(1, 0.15);
+        hpBarFgGeo.translate(0.5, 0, 0); // 왼쪽 정렬
+        const hpBarFgMatRed = new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false });
+        const hpBarFgMatGreen = new THREE.MeshBasicMaterial({ color: 0x00ff00, depthTest: false });
+        const hpBarFgMatBoss = new THREE.MeshBasicMaterial({ color: 0xffaa00, depthTest: false });
+
+        // ==========================================
         // 1. 게임 설정 및 초기화
         // ==========================================
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a2e); 
         scene.fog = new THREE.Fog(0x1a1a2e, 20, 60);
 
-        // 메인 게임 카메라 (Orthographic)
         const camera = new THREE.OrthographicCamera(
             window.innerWidth / -40, window.innerWidth / 40,
             window.innerHeight / 40, window.innerHeight / -40,
@@ -241,24 +226,19 @@
         camera.zoom = 1.2;
         camera.updateProjectionMatrix();
 
-        // ★ 시작 화면용 카메라 3개 생성 (Perspective) ★
+        // 시작 화면용 카메라들
         const startCam1 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        startCam1.position.set(2, 1.5, 2); // 얼굴/상체 근접
-        startCam1.lookAt(0, 1, 0);
-
+        startCam1.position.set(2, 1.5, 2); startCam1.lookAt(0, 1, 0);
         const startCam2 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        startCam2.position.set(0, 2, 6); // 전신 정면
-        startCam2.lookAt(0, 1, 0);
-
+        startCam2.position.set(0, 2, 6); startCam2.lookAt(0, 1, 0);
         const startCam3 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        startCam3.position.set(0, 10, 0); // 완전 탑뷰
-        startCam3.lookAt(0, 0, 0);
+        startCam3.position.set(0, 10, 0); startCam3.lookAt(0, 0, 0);
 
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        document.body.appendChild(renderer.domElement);
+        renderer.shadowMap.enabled = true; // 그림자 켜기
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
 
         const ambientLight = new THREE.AmbientLight(0x606060);
         scene.add(ambientLight);
@@ -266,8 +246,8 @@
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
         dirLight.position.set(10, 20, 10);
         dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.mapSize.width = 1024; // 맵 사이즈 줄임 (최적화)
+        dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
 
         const ground = new THREE.Mesh(
@@ -280,41 +260,26 @@
         scene.add(new THREE.GridHelper(200, 100, 0x444444, 0x333333));
 
         // ==========================================
-        // 2. 모델 로딩 (플레이어 및 적)
+        // 2. 모델 로딩
         // ==========================================
         const loader = new GLTFLoader();
         const loadedModels = { player: null, maleEnemy: null, femaleEnemy: null, boss: null };
 
-        // 플레이어
         const playerGroup = new THREE.Group();
         scene.add(playerGroup);
+        
         const pGeo = new THREE.BoxGeometry(1, 1, 1);
         const pMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
         const playerFallback = new THREE.Mesh(pGeo, pMat);
         playerFallback.position.y = 0.5;
-        playerFallback.castShadow = true;
+        playerFallback.castShadow = true; // 플레이어는 그림자 켬
         playerGroup.add(playerFallback);
 
-        // ★ 최적화: 3D 체력바 지오메트리 및 재질 미리 생성 (공유) ★
-        const hpBarBgGeo = new THREE.PlaneGeometry(1, 0.15);
-        const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x333333, depthTest: false }); 
-        
-        const hpBarFgGeo = new THREE.PlaneGeometry(1, 0.15);
-        hpBarFgGeo.translate(0.5, 0, 0); 
-        const hpBarFgMatRed = new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false }); 
-        const hpBarFgMatGreen = new THREE.MeshBasicMaterial({ color: 0x00ff00, depthTest: false }); 
-        const hpBarFgMatBoss = new THREE.MeshBasicMaterial({ color: 0xffaa00, depthTest: false }); 
-
-        // 플레이어용 3D 체력바 생성
-        const playerHpBarGroup = new THREE.Group();
+        // 플레이어 체력바 (3D)
+        const playerHpBarGroup = create3DHpBar('player');
         playerHpBarGroup.position.y = 2.0;
-        const pBg = new THREE.Mesh(hpBarBgGeo, hpBarBgMat);
-        const pFg = new THREE.Mesh(hpBarFgGeo, hpBarFgMatGreen);
-        pFg.position.x = -0.5; 
-        pFg.position.z = 0.01; 
-        playerHpBarGroup.add(pBg, pFg);
+        playerHpBarGroup.visible = false;
         playerGroup.add(playerHpBarGroup);
-        playerHpBarGroup.visible = false; // 게임 시작 전엔 숨김
 
         let playerMixer;
         loader.load('./player.glb', (gltf) => {
@@ -330,7 +295,7 @@
         loader.load('./male_enemy.glb', (gltf) => { loadedModels.maleEnemy = gltf; }, undefined, () => {});
         loader.load('./female_enemy.glb', (gltf) => { loadedModels.femaleEnemy = gltf; }, undefined, () => {});
 
-        // 타지리 미스트 시각효과
+        // 타지리 미스트
         const mistGeo = new THREE.RingGeometry(0.5, 4, 32);
         const mistMat = new THREE.MeshBasicMaterial({ color: 0x800080, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
         const mistMesh = new THREE.Mesh(mistGeo, mistMat);
@@ -339,37 +304,19 @@
         playerGroup.add(mistMesh);
 
         // ==========================================
-        // 3. 게임 상태 및 변수
+        // 3. 게임 상태
         // ==========================================
         const gameState = {
-            gameStarted: false, // 게임 시작 여부 플래그
-            isPlaying: true, isPaused: false, time: 0,
+            gameStarted: false, isPlaying: true, isPaused: false, time: 0,
             level: 1, exp: 0, maxExp: 10, kills: 0,
-            hp: 100, maxHp: 100,
-            bombs: 1, 
-            bombTimer: 0, 
-            quoteChance: 0,
-            cameraIndex: 0, // 현재 활성화된 카메라 인덱스
-            cameraTimer: 0 // 카메라 전환 타이머
+            hp: 100, maxHp: 100, bombs: 1, bombTimer: 0, quoteChance: 0,
+            cameraIndex: 0, cameraTimer: 0
         };
         const BOMB_COOLDOWN_TIME = 300; 
-
-        const playerStats = {
-            moveSpeed: 0.15, 
-            damageMult: 1.0, 
-            pickupRange: 3.0, 
-            luck: 1.0,
-            attackSpeed: 1.0 
-        };
-
+        const playerStats = { moveSpeed: 0.15, damageMult: 1.0, pickupRange: 3.0, luck: 1.0, attackSpeed: 1.0 };
         const inventory = {
             qrBeam: { level: 1, active: true, name: "QR코드 빔", type: "weapon", cooldown: 0.8, lastShot: 0, damage: 10 },
-            nftContract: { 
-                level: 0, active: true, name: "NFT 계약서", type: "passive", 
-                desc: "공격 시 일정 확률로 계약서 투척. 일반적 즉사, 보스 최대 체력 비례 피해.", 
-                throwChance: 0.01, 
-                bossDmgRate: 0.10 
-            },
+            nftContract: { level: 0, active: true, name: "NFT 계약서", type: "passive", desc: "즉사/보스피해", throwChance: 0.01, bossDmgRate: 0.10 },
             mist: { level: 0, active: false, name: "타지리 미스트", type: "weapon", cooldown: 0.5, lastTick: 0, damage: 3, range: 4 },
             chunjat: { level: 0, active: false, name: "춘잣", type: "passive", effect: "speed", val: 0.05 },
             movingMan: { level: 0, active: false, name: "무빙맨", type: "passive", effect: "haste", val: 0.1 }, 
@@ -382,14 +329,8 @@
         const gems = [];
         const minchos = []; 
         const keys = { w:false, a:false, s:false, d:false, ArrowUp:false, ArrowLeft:false, ArrowDown:false, ArrowRight:false, " ": false };
-
-        const deathQuotes = {
-            female: ["여자는 안되나요", "겸상해요"],
-            male: ["게이조이고", "죄송합니다 제가 ....", "니.니게 그런 사라미", "어~~~~~♬"],
-            boss: ["내가.. 내가 해고라니!!", "퇴직금은..?", "회식.. 가야지.."]
-        };
-
-        const MAX_ENEMIES = 100; // 최적화를 위한 최대 적 수 제한
+        const deathQuotes = { female: ["여자는 안되나요", "겸상해요"], male: ["게이조이고", "죄송합니다", "니.니게 그런", "어~~~~~♬"], boss: ["해고라니!!", "퇴직금은..?", "회식.."] };
+        const MAX_ENEMIES = 100;
 
         // ==========================================
         // 4. 게임 로직
@@ -397,44 +338,25 @@
         window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = true; });
         window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = false; });
 
-        // 게임 시작 버튼 이벤트
         document.getElementById('start-btn').addEventListener('click', () => {
             gameState.gameStarted = true;
             document.getElementById('start-screen').style.display = 'none';
-            // UI 보이기
             document.getElementById('top-bar').style.opacity = '1';
             document.getElementById('exp-bar-container').style.opacity = '1';
             document.getElementById('level-indicator').style.opacity = '1';
             document.getElementById('ult-guide').style.opacity = '1';
-            document.getElementById('hp-bars-layer').style.display = 'block';
             playerHpBarGroup.visible = true;
         });
 
-        function update3DHpBar(mesh, hp, maxHp) {
-            const barGroup = mesh.children.find(c => c.userData.isHpBar);
-            if (barGroup) {
-                const fg = barGroup.children[1];
-                const pct = Math.max(0, hp / maxHp);
-                fg.scale.x = pct;
-                barGroup.lookAt(camera.position); 
-            }
-        }
-
+        // [최적화 2] 3D 체력바 생성 (DOM 아님)
         function create3DHpBar(type) {
             const group = new THREE.Group();
             group.userData.isHpBar = true; 
-            
             const bg = new THREE.Mesh(hpBarBgGeo, hpBarBgMat);
             
-            let mat = hpBarFgMatRed;
-            let scaleY = 1;
-            let width = 1;
-
-            if (type === 'boss') {
-                mat = hpBarFgMatBoss;
-                scaleY = 2; 
-                width = 3;
-            }
+            let mat = (type === 'player') ? hpBarFgMatGreen : (type === 'boss' ? hpBarFgMatBoss : hpBarFgMatRed);
+            let scaleY = (type === 'boss') ? 2 : 1;
+            let width = (type === 'boss') ? 3 : 1;
 
             const fg = new THREE.Mesh(hpBarFgGeo, mat);
             fg.position.x = -0.5 * width; 
@@ -447,6 +369,19 @@
             return group;
         }
 
+        function update3DHpBar(mesh, hp, maxHp) {
+            const barGroup = mesh.children.find(c => c.userData.isHpBar);
+            if (barGroup) {
+                const fg = barGroup.children[1];
+                const pct = Math.max(0, hp / maxHp);
+                fg.scale.x = Math.max(0.001, pct * barGroup.children[0].scale.x); // 배경 크기 기준 비율
+                barGroup.lookAt(camera.position.x, 10000, camera.position.z); // 빌보드 처리 (대충 위쪽 보기)
+                barGroup.rotation.x = -Math.PI / 2; // 탑다운이라 눕히기
+                barGroup.rotation.z = 0;
+                barGroup.rotation.y = 0;
+            }
+        }
+
         function spawnEnemy(isBoss = false) {
             if (gameState.isPaused) return;
             if (enemies.length >= MAX_ENEMIES && !isBoss) return; 
@@ -456,98 +391,81 @@
             const x = playerGroup.position.x + Math.cos(angle) * distance;
             const z = playerGroup.position.z + Math.sin(angle) * distance;
             
-            let type = 'male';
-            if (!isBoss) {
-                const isRanged = Math.random() > 0.7;
-                type = isRanged ? 'female' : 'male';
-            } else {
-                type = 'boss';
-            }
-            
-            let enemyMesh;
-            let mixer = null;
+            let type = isBoss ? 'boss' : (Math.random() > 0.7 ? 'female' : 'male');
+            let enemyMesh, mixer;
 
             if (type === 'boss') {
                 const geo = new THREE.BoxGeometry(2, 4, 2);
                 const mat = new THREE.MeshStandardMaterial({ color: 0xff4400 });
                 enemyMesh = new THREE.Mesh(geo, mat);
                 enemyMesh.position.y = 2;
-            } else if (type === 'male') {
-                if (loadedModels.maleEnemy) {
-                    enemyMesh = SkeletonUtils.clone(loadedModels.maleEnemy.scene);
-                    enemyMesh.scale.set(1, 1, 1);
-                    const clips = loadedModels.maleEnemy.animations;
-                    if(clips && clips.length > 0) { mixer = new THREE.AnimationMixer(enemyMesh); mixer.clipAction(clips[0]).play(); }
-                } else {
-                    const geo = new THREE.BoxGeometry(1, 1.5, 1);
-                    const mat = new THREE.MeshStandardMaterial({ color: 0x3366ff });
-                    enemyMesh = new THREE.Mesh(geo, mat);
-                    enemyMesh.position.y = 0.75;
-                }
             } else {
-                if (loadedModels.femaleEnemy) {
-                    enemyMesh = SkeletonUtils.clone(loadedModels.femaleEnemy.scene);
+                let model = (type === 'male') ? loadedModels.maleEnemy : loadedModels.femaleEnemy;
+                if (model) {
+                    enemyMesh = SkeletonUtils.clone(model.scene);
                     enemyMesh.scale.set(1, 1, 1);
-                    const clips = loadedModels.femaleEnemy.animations;
-                    if(clips && clips.length > 0) { mixer = new THREE.AnimationMixer(enemyMesh); mixer.clipAction(clips[0]).play(); }
+                    if(model.animations.length > 0) { mixer = new THREE.AnimationMixer(enemyMesh); mixer.clipAction(model.animations[0]).play(); }
                 } else {
-                    const geo = new THREE.CylinderGeometry(0.4, 0.4, 1.5, 12);
-                    const mat = new THREE.MeshStandardMaterial({ color: 0xff66cc });
+                    // 폴백 박스
+                    const geo = new THREE.BoxGeometry(1, 1.5, 1);
+                    const mat = new THREE.MeshStandardMaterial({ color: type === 'male' ? 0x3366ff : 0xff66cc });
                     enemyMesh = new THREE.Mesh(geo, mat);
                     enemyMesh.position.y = 0.75;
                 }
             }
             
-            enemyMesh.traverse(o => { if(o.isMesh) o.castShadow = true; });
+            // [최적화 3] 그림자: 보스만 켜고 잡몹은 끔
+            enemyMesh.traverse(o => { if(o.isMesh) o.castShadow = isBoss; });
             
             enemyMesh.position.set(x, isBoss ? 2 : 0, z);
-            if (!loadedModels[type + 'Enemy'] && type !== 'boss') enemyMesh.position.y = 0.75;
+            if (!mixer && type !== 'boss') enemyMesh.position.y = 0.75;
 
             let hp = 15 + (gameState.time * 0.5);
             if (type === 'female') hp *= 0.7;
             if (type === 'boss') hp = hp * 50 + 500; 
 
-            // 3D 체력바 생성 및 부착
             const hpBar = create3DHpBar(type);
             hpBar.position.y = isBoss ? 2.5 : 2.0;
+            // 눕히기 (탑뷰에서 잘 보이게)
+            hpBar.rotation.x = -Math.PI / 2;
             enemyMesh.add(hpBar);
 
-            enemyMesh.userData = { 
-                type: type, 
-                hp: hp, 
-                maxHp: hp, 
-                speed: type === 'boss' ? 0.03 : (type === 'female' ? 0.04 : 0.05), 
-                attackCooldown: 0, 
-                mixer: mixer, 
-                isBoss: isBoss 
-            };
+            enemyMesh.userData = { type: type, hp: hp, maxHp: hp, speed: type === 'boss' ? 0.03 : (type === 'female' ? 0.04 : 0.05), attackCooldown: 0, mixer: mixer, isBoss: isBoss };
             scene.add(enemyMesh);
             enemies.push(enemyMesh);
         }
 
+        // [최적화 4] 데미지 텍스트 제한
         function createDamageText(position, damage, isMincho = false, isDeathQuote = false) {
+            if (!isMincho && !isDeathQuote && activeDamageTextCount > 30) return; // 너무 많으면 스킵
+
             const div = document.createElement('div');
+            activeDamageTextCount++;
+            
             if (isDeathQuote) {
                 div.className = 'damage-text death-quote';
                 div.innerText = damage; 
             } else if (isMincho) {
                 div.className = 'damage-text mincho-text';
-                div.innerText = "민초 획득! (+1 필살기)";
+                div.innerText = "민초!";
             } else {
                 div.className = 'damage-text';
                 div.innerText = Math.floor(damage);
             }
             
-            const vec = position.clone();
-            if(isDeathQuote) vec.y += 2; 
+            _tempVec1.copy(position);
+            if(isDeathQuote) _tempVec1.y += 2; 
             
-            vec.project(camera);
-            const x = (vec.x * .5 + .5) * window.innerWidth;
-            const y = (-(vec.y * .5) + .5) * window.innerHeight;
+            _tempVec1.project(camera);
+            const x = (_tempVec1.x * .5 + .5) * window.innerWidth;
+            const y = (-(_tempVec1.y * .5) + .5) * window.innerHeight;
             div.style.left = `${x}px`; div.style.top = `${y}px`;
             
             document.getElementById('damage-layer').appendChild(div);
-            setTimeout(() => div.remove(), isDeathQuote ? 2000 : 1000); 
+            setTimeout(() => {
+                div.remove();
+                activeDamageTextCount--;
+            }, isDeathQuote ? 2000 : 800); 
         }
 
         function spawnGem(position, value) {
@@ -560,20 +478,11 @@
 
         function spawnMincho(position) {
             const group = new THREE.Group();
-            const iceGeo = new THREE.SphereGeometry(0.4, 16, 16);
-            const iceMat = new THREE.MeshStandardMaterial({ color: 0x00ffaa, roughness: 0.5 });
+            const iceGeo = new THREE.SphereGeometry(0.4, 8, 8); // 세그먼트 줄임
+            const iceMat = new THREE.MeshStandardMaterial({ color: 0x00ffaa });
             const ice = new THREE.Mesh(iceGeo, iceMat);
             group.add(ice);
-            const chipGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-            const chipMat = new THREE.MeshStandardMaterial({ color: 0x3e2723 });
-            for(let i=0; i<5; i++) {
-                const chip = new THREE.Mesh(chipGeo, chipMat);
-                chip.position.set(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(0.35);
-                group.add(chip);
-            }
             group.position.copy(position); group.position.y = 0.5;
-            const light = new THREE.PointLight(0x00ffaa, 1, 3);
-            group.add(light);
             scene.add(group); minchos.push(group);
         }
 
@@ -589,54 +498,42 @@
         function useBomb() {
             if (gameState.bombs <= 0) return;
             gameState.bombs--;
-            updateBombUI();
+            document.getElementById('bomb-val').innerText = gameState.bombs;
+            
+            // 역순 순회하며 삭제
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
-                // HP바 제거 (3D라 scene.remove(enemy) 하면 자동 삭제되지만 명시적으로 참조 끊기)
-                // enemy.userData.hpBar... 는 child이므로 함께 삭제됨.
-                
                 spawnGem(enemy.position, 1);
                 gameState.kills++;
                 scene.remove(enemy);
                 enemies.splice(i, 1);
             }
             document.getElementById('kill-count').innerText = gameState.kills;
-            for (let i = enemyProjectiles.length - 1; i >= 0; i--) { scene.remove(enemyProjectiles[i]); }
-            enemyProjectiles.length = 0;
-            const blastGeo = new THREE.SphereGeometry(1, 32, 32);
-            const blastMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-            const blast = new THREE.Mesh(blastGeo, blastMat);
+            
+            // 시각 효과 간소화
+            const blast = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
             blast.position.copy(playerGroup.position);
             scene.add(blast);
             let scale = 1;
-            const expandInterval = setInterval(() => {
-                scale += 2; blast.scale.set(scale, scale, scale); blast.material.opacity -= 0.05;
-                if (blast.material.opacity <= 0) { clearInterval(expandInterval); scene.remove(blast); }
-            }, 16);
+            const iv = setInterval(() => {
+                scale += 3; blast.scale.set(scale, scale, scale); blast.material.opacity -= 0.1;
+                if (blast.material.opacity <= 0) { clearInterval(iv); scene.remove(blast); }
+            }, 30);
         }
-
-        function updateBombUI() { document.getElementById('bomb-val').innerText = gameState.bombs; }
 
         function fireWeapons(delta) {
             const atkSpeed = playerStats.attackSpeed;
-
             if (inventory.qrBeam.active) {
                 inventory.qrBeam.lastShot += delta * atkSpeed; 
                 if (inventory.qrBeam.lastShot >= inventory.qrBeam.cooldown) {
                     const info = getNearestEnemy();
                     if (info.enemy && info.dist < 15) { 
                         shootQR(info.enemy); 
-                        
-                        const chance = inventory.nftContract.throwChance;
-                        if (Math.random() < chance) {
-                            throwContract();
-                        }
-
+                        if (Math.random() < inventory.nftContract.throwChance) throwContract();
                         inventory.qrBeam.lastShot = 0; 
                     }
                 }
             }
-
             if (inventory.mist.active) {
                 mistMesh.material.opacity = 0.3 + Math.sin(Date.now() / 200) * 0.1;
                 mistMesh.scale.set(inventory.mist.range, inventory.mist.range, 1);
@@ -650,67 +547,42 @@
             } else { mistMesh.material.opacity = 0; }
         }
 
+        // [최적화 1 적용] 지오메트리 재사용
         function shootQR(target) {
-            const geo = new THREE.BoxGeometry(0.2, 0.2, 0.8);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-            const beam = new THREE.Mesh(geo, mat);
+            const beam = new THREE.Mesh(qrGeo, qrMat);
             beam.position.copy(playerGroup.position); beam.position.y = 1;
             beam.lookAt(target.position.x, 1, target.position.z);
-            const dir = new THREE.Vector3(target.position.x - playerGroup.position.x, 0, target.position.z - playerGroup.position.z).normalize();
-            beam.userData = { velocity: dir.multiplyScalar(0.4), damage: inventory.qrBeam.damage * playerStats.damageMult, duration: 2, hitList: [] };
+            
+            // [최적화 2 적용] 벡터 재사용
+            _tempVec1.subVectors(target.position, playerGroup.position).normalize();
+            
+            beam.userData = { velocity: _tempVec1.clone().multiplyScalar(0.4), damage: inventory.qrBeam.damage * playerStats.damageMult, duration: 2, hitList: [] };
             scene.add(beam); projectiles.push(beam);
         }
 
         function throwContract() {
-            const geo = new THREE.BoxGeometry(0.8, 0.1, 0.5);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const paper = new THREE.Mesh(geo, mat);
+            const paper = new THREE.Mesh(contractGeo, contractMat);
             paper.position.copy(playerGroup.position); paper.position.y = 1;
             const angle = Math.random() * Math.PI * 2;
-            const dir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)).normalize();
+            _tempVec1.set(Math.cos(angle), 0, Math.sin(angle)).normalize();
             
             paper.userData = { 
-                type: 'contract', 
-                velocity: dir.multiplyScalar(0.3), 
-                bossDmgRate: inventory.nftContract.bossDmgRate,
-                duration: 3, 
-                pierce: 5, 
-                hitList: [] 
+                type: 'contract', velocity: _tempVec1.clone().multiplyScalar(0.3), 
+                bossDmgRate: inventory.nftContract.bossDmgRate, duration: 3, pierce: 5, hitList: [] 
             };
             scene.add(paper); projectiles.push(paper);
-        }
-
-        function enemyShootHeart(enemy) {
-            const geo = new THREE.SphereGeometry(0.4, 8, 8);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0x550000 });
-            const heart = new THREE.Mesh(geo, mat);
-            heart.position.copy(enemy.position); heart.position.y = 1;
-            const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position).normalize();
-            heart.userData = { velocity: dir.multiplyScalar(0.15), damage: 10, duration: 4 };
-            scene.add(heart); enemyProjectiles.push(heart);
         }
 
         function takeDamage(enemy, amount) {
             enemy.userData.hp -= amount;
             createDamageText(enemy.position, amount);
-            enemy.traverse(child => { if(child.isMesh) {
-                child.material.emissive.setHex(0xff0000);
-                setTimeout(() => child.material.emissive.setHex(0x000000), 100);
-            }});
-
             if (enemy.userData.hp <= 0) {
-                if (Math.random() * 100 < gameState.quoteChance) {
-                    const quotes = deathQuotes[enemy.userData.type];
-                    if (quotes) {
-                        const quote = quotes[Math.floor(Math.random() * quotes.length)];
-                        createDamageText(enemy.position, quote, false, true); 
-                    }
+                if (Math.random() * 100 < gameState.quoteChance && deathQuotes[enemy.userData.type]) {
+                    const q = deathQuotes[enemy.userData.type];
+                    createDamageText(enemy.position, q[Math.floor(Math.random()*q.length)], false, true);
                 }
-
                 spawnGem(enemy.position, enemy.userData.isBoss ? 50 : 1); 
-                
                 if (Math.random() < 0.01) spawnMincho(enemy.position);
-
                 gameState.kills++;
                 document.getElementById('kill-count').innerText = gameState.kills;
                 scene.remove(enemy);
@@ -722,16 +594,9 @@
         function damagePlayer(amount) {
             gameState.hp = Math.max(0, gameState.hp - amount);
             document.getElementById('hp-val').innerText = Math.floor(gameState.hp);
-            if(playerGroup.children[0]) {
-                const mesh = playerGroup.children[0];
-                mesh.traverse(o => {
-                    if(o.isMesh) {
-                        const oldColor = o.material.color.getHex();
-                        o.material.color.setHex(0xff0000);
-                        setTimeout(() => o.material.color.setHex(oldColor), 100);
-                    }
-                });
-            }
+            // 피격 효과 단순화 (색상만 변경)
+            playerGroup.children.forEach(c => { if(c.material && c.material.emissive) c.material.emissive.setHex(0xff0000); });
+            setTimeout(() => playerGroup.children.forEach(c => { if(c.material && c.material.emissive) c.material.emissive.setHex(0x000000); }), 100);
             if (gameState.hp <= 0) gameOver();
         }
 
@@ -752,17 +617,15 @@
             const container = document.getElementById('upgrade-cards');
             container.innerHTML = '';
             modal.style.display = 'flex';
-
             const options = [
-                { key: 'qrBeam', title: 'QR코드 빔', desc: '기본 공격 속도/데미지 증가', icon: '📱' },
-                { key: 'nftContract', title: 'NFT 계약서', desc: '던질 확률/보스 데미지 증가', icon: '📄' },
-                { key: 'mist', title: '타지리 미스트', desc: '주변 지속 데미지 오라', icon: '☠️' },
-                { key: 'chunjat', title: '춘잣', desc: '이동 속도 5% 증가', icon: '🌰' },
-                { key: 'movingMan', title: '무빙맨', desc: '공격 속도 10% 증가', icon: '🏃' },
-                { key: 'clover', title: '행운의 클로버', desc: '공격력 20% 증가', icon: '🍀' }
+                { key: 'qrBeam', title: 'QR코드 빔', desc: '공격력/속도 증가', icon: '📱' },
+                { key: 'nftContract', title: 'NFT 계약서', desc: '즉사 확률 증가', icon: '📄' },
+                { key: 'mist', title: '타지리 미스트', desc: '독구름 강화', icon: '☠️' },
+                { key: 'chunjat', title: '춘잣', desc: '이동 속도 증가', icon: '🌰' },
+                { key: 'movingMan', title: '무빙맨', desc: '공격 속도 증가', icon: '🏃' },
+                { key: 'clover', title: '행운의 클로버', desc: '공격력 증가', icon: '🍀' }
             ];
             options.sort(() => Math.random() - 0.5);
-            
             options.slice(0, 3).forEach(opt => {
                 const item = inventory[opt.key];
                 let btnText = item.level === 0 ? "신규 습득" : `Lv.${item.level} -> Lv.${item.level+1}`;
@@ -779,10 +642,7 @@
             const item = inventory[key];
             item.active = true; item.level++;
             if (key === 'qrBeam') { item.damage += 5; item.cooldown *= 0.9; }
-            else if (key === 'nftContract') { 
-                item.throwChance = Math.min(0.05, 0.01 * (item.level + 1)); 
-                item.bossDmgRate = Math.min(0.25, 0.10 + (item.level * 0.03)); 
-            }
+            else if (key === 'nftContract') { item.throwChance = Math.min(0.05, 0.01 * (item.level + 1)); item.bossDmgRate = Math.min(0.25, 0.10 + (item.level * 0.03)); }
             else if (key === 'mist') { item.damage += 2; item.range += 0.5; }
             else if (key === 'chunjat') { playerStats.moveSpeed += item.val; }
             else if (key === 'movingMan') { playerStats.attackSpeed += item.val; } 
@@ -796,30 +656,14 @@
             document.getElementById('game-over-screen').style.display = 'flex';
         }
 
-        // ==========================================
-        // 6. 메인 루프
-        // ==========================================
         const clock = new THREE.Clock();
-        
         setInterval(() => {
-            // ★ 게임 시작 전엔 타이머/스폰 멈춤 ★
-            if (!gameState.gameStarted) return; 
-            if (!gameState.isPlaying || gameState.isPaused) return;
-            // 적 생성 물량 대폭 증가
+            if (!gameState.gameStarted || !gameState.isPlaying || gameState.isPaused) return;
             const spawnCount = 2 + Math.floor(gameState.time / 20); 
             for(let i=0; i<spawnCount; i++) spawnEnemy();
-            
-            // 60초마다 보스(부장님) 등장
-            if (gameState.time > 0 && gameState.time % 60 === 0) {
-                spawnEnemy(true);
-            }
-
+            if (gameState.time > 0 && gameState.time % 60 === 0) spawnEnemy(true);
             gameState.time++;
-
-            if (gameState.time % 10 === 0) {
-                gameState.quoteChance = Math.min(20, gameState.quoteChance + 1);
-            }
-
+            if (gameState.time % 10 === 0) gameState.quoteChance = Math.min(20, gameState.quoteChance + 1);
             const m = Math.floor(gameState.time / 60).toString().padStart(2, '0');
             const s = (gameState.time % 60).toString().padStart(2, '0');
             document.getElementById('timer').innerText = `${m}:${s}`;
@@ -829,14 +673,9 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            // ★ 1. 게임 시작 전: 쇼케이스 (멀티 카메라 뷰) ★
             if (!gameState.gameStarted) {
-                // 플레이어 애니메이션 업데이트
                 if (playerMixer) playerMixer.update(delta);
-                // 플레이어 살짝 회전
                 playerGroup.rotation.y += delta * 0.5;
-
-                // 카메라 자동 전환 (3초마다)
                 gameState.cameraTimer += delta;
                 if (gameState.cameraTimer >= 3.0) {
                     gameState.cameraTimer = 0;
@@ -844,40 +683,29 @@
                     gameState.cameraIndex = (gameState.cameraIndex + 1) % 3;
                     document.getElementById(`cam-label-${gameState.cameraIndex}`).classList.add('cam-active');
                 }
-
-                // 단일 뷰포트 렌더링
                 const cams = [startCam1, startCam2, startCam3];
                 renderer.render(scene, cams[gameState.cameraIndex]);
-                return; // 게임 로직 건너뜀
+                return;
             }
 
-            // ★ 2. 게임 시작 후: 정상 게임 루프 ★
             if (!gameState.isPlaying || gameState.isPaused) return;
 
-            if (keys[' ']) {
-                useBomb();
-                keys[' '] = false;
-            }
-
+            if (keys[' ']) { useBomb(); keys[' '] = false; }
             gameState.bombTimer += delta;
-            if (gameState.bombTimer >= BOMB_COOLDOWN_TIME) {
-                gameState.bombs++;
-                gameState.bombTimer = 0;
-                updateBombUI();
-            }
+            if (gameState.bombTimer >= BOMB_COOLDOWN_TIME) { gameState.bombs++; gameState.bombTimer = 0; document.getElementById('bomb-val').innerText = gameState.bombs; }
             const bombPct = Math.min(100, Math.floor((gameState.bombTimer / BOMB_COOLDOWN_TIME) * 100));
             document.getElementById('bomb-cooldown').innerText = `(${bombPct}%)`;
 
-            const moveDir = new THREE.Vector3(0, 0, 0);
-            if (keys.w || keys.ArrowUp) moveDir.z -= 1;
-            if (keys.s || keys.ArrowDown) moveDir.z += 1;
-            if (keys.a || keys.ArrowLeft) moveDir.x -= 1;
-            if (keys.d || keys.ArrowRight) moveDir.x += 1;
+            _tempVec1.set(0,0,0);
+            if (keys.w || keys.ArrowUp) _tempVec1.z -= 1;
+            if (keys.s || keys.ArrowDown) _tempVec1.z += 1;
+            if (keys.a || keys.ArrowLeft) _tempVec1.x -= 1;
+            if (keys.d || keys.ArrowRight) _tempVec1.x += 1;
 
-            if (moveDir.length() > 0) {
-                moveDir.normalize().multiplyScalar(playerStats.moveSpeed);
-                playerGroup.position.add(moveDir);
-                const targetRot = Math.atan2(moveDir.x, moveDir.z);
+            if (_tempVec1.length() > 0) {
+                _tempVec1.normalize().multiplyScalar(playerStats.moveSpeed);
+                playerGroup.position.add(_tempVec1);
+                const targetRot = Math.atan2(_tempVec1.x, _tempVec1.z);
                 if(playerMixer) playerGroup.children.forEach(c => { if(c.isGroup) c.rotation.y = targetRot; });
             }
 
@@ -893,6 +721,7 @@
 
             update3DHpBar(playerHpBarGroup, gameState.hp, gameState.maxHp); 
 
+            // 투사체 업데이트
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i];
                 p.position.add(p.userData.velocity);
@@ -902,95 +731,62 @@
 
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     const enemy = enemies[j];
-                    // ★ 2D 거리 체크로 변경 (Y축 무시) ★
+                    // [최적화] 2D 거리 체크 (제곱)
                     const dx = p.position.x - enemy.position.x;
                     const dz = p.position.z - enemy.position.z;
                     const distSq = dx*dx + dz*dz;
                     
-                    if (distSq < 2.25) {
+                    if (distSq < 2.25) { // 1.5 * 1.5
                         if (p.userData.hitList && p.userData.hitList.includes(enemy.id)) continue;
-                        
                         let damage = p.userData.damage;
-                        if (p.userData.type === 'contract') {
-                            if (enemy.userData.isBoss) {
-                                damage = enemy.userData.maxHp * p.userData.bossDmgRate;
-                            } else {
-                                damage = enemy.userData.hp;
-                            }
-                        }
-
+                        if (p.userData.type === 'contract') damage = enemy.userData.isBoss ? enemy.userData.maxHp * p.userData.bossDmgRate : enemy.userData.hp;
                         takeDamage(enemy, damage);
                         if (p.userData.hitList) p.userData.hitList.push(enemy.id);
-                        
                         if (p.userData.type !== 'contract') { scene.remove(p); projectiles.splice(i, 1); break; }
                         else if (p.userData.hitList.length >= p.userData.pierce) { scene.remove(p); projectiles.splice(i, 1); break; }
                     }
                 }
             }
 
-            for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
-                const ep = enemyProjectiles[i];
-                ep.position.add(ep.userData.velocity);
-                ep.userData.duration -= delta;
-                
-                // ★ 적 투사체도 플레이어와 2D 거리 체크 ★
-                const dx = ep.position.x - playerGroup.position.x;
-                const dz = ep.position.z - playerGroup.position.z;
-                const distSq = dx*dx + dz*dz;
-                
-                if (distSq < 1.0) { // 플레이어 히트박스 반경 1.0
-                    damagePlayer(ep.userData.damage);
-                    scene.remove(ep);
-                    enemyProjectiles.splice(i, 1);
-                    continue;
-                }
-                if (ep.userData.duration <= 0) { scene.remove(ep); enemyProjectiles.splice(i, 1); }
-            }
-
+            // 적 업데이트
             enemies.forEach(enemy => {
                 update3DHpBar(enemy, enemy.userData.hp, enemy.userData.maxHp);
-
                 if (enemy.userData.mixer) enemy.userData.mixer.update(delta);
+                
                 const distToPlayer = enemy.position.distanceTo(playerGroup.position);
-                const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position).normalize();
+                _tempVec2.subVectors(playerGroup.position, enemy.position).normalize();
 
                 if (enemy.userData.type === 'male' || enemy.userData.type === 'boss') {
-                    enemy.position.add(dir.multiplyScalar(enemy.userData.speed));
+                    enemy.position.add(_tempVec2.multiplyScalar(enemy.userData.speed));
                     if (distToPlayer < (enemy.userData.isBoss ? 2.5 : 0.8)) damagePlayer(enemy.userData.isBoss ? 5 : 0.5);
                 } else {
-                    if (distToPlayer > 8) enemy.position.add(dir.multiplyScalar(enemy.userData.speed));
-                    enemy.userData.attackCooldown -= delta;
-                    if (enemy.userData.attackCooldown <= 0 && distToPlayer < 12) {
-                        enemyShootHeart(enemy);
-                        enemy.userData.attackCooldown = 2.0;
-                    }
+                    if (distToPlayer > 8) enemy.position.add(_tempVec2.multiplyScalar(enemy.userData.speed));
                 }
                 enemy.lookAt(playerGroup.position);
             });
 
+            // 아이템 습득
             for (let i = gems.length - 1; i >= 0; i--) {
                 const gem = gems[i];
-                const dist = playerGroup.position.distanceTo(gem.position);
-                if (dist < playerStats.pickupRange) {
-                    const dir = new THREE.Vector3().subVectors(playerGroup.position, gem.position).normalize();
-                    gem.position.add(dir.multiplyScalar(0.3));
-                    if (dist < 0.5) { gameState.exp += gem.userData.value; scene.remove(gem); gems.splice(i, 1); checkLevelUp(); }
-                } else { gem.rotation.y += 0.05; }
+                if (playerGroup.position.distanceTo(gem.position) < playerStats.pickupRange) {
+                    _tempVec2.subVectors(playerGroup.position, gem.position).normalize();
+                    gem.position.add(_tempVec2.multiplyScalar(0.3));
+                    if (playerGroup.position.distanceTo(gem.position) < 0.5) { 
+                        gameState.exp += gem.userData.value; scene.remove(gem); gems.splice(i, 1); checkLevelUp(); 
+                    }
+                } else gem.rotation.y += 0.05;
             }
-
             for (let i = minchos.length - 1; i >= 0; i--) {
                 const m = minchos[i];
-                const dist = playerGroup.position.distanceTo(m.position);
-                if (dist < playerStats.pickupRange) {
-                    const dir = new THREE.Vector3().subVectors(playerGroup.position, m.position).normalize();
-                    m.position.add(dir.multiplyScalar(0.3));
-                    if (dist < 0.5) { 
-                        gameState.bombs++;
-                        updateBombUI();
+                if (playerGroup.position.distanceTo(m.position) < playerStats.pickupRange) {
+                    _tempVec2.subVectors(playerGroup.position, m.position).normalize();
+                    m.position.add(_tempVec2.multiplyScalar(0.3));
+                    if (playerGroup.position.distanceTo(m.position) < 0.5) { 
+                        gameState.bombs++; document.getElementById('bomb-val').innerText = gameState.bombs;
                         createDamageText(playerGroup.position, 0, true); 
                         scene.remove(m); minchos.splice(i, 1); 
                     }
-                } else { m.rotation.y += 0.05; }
+                } else m.rotation.y += 0.05;
             }
 
             renderer.render(scene, camera);
@@ -999,17 +795,12 @@
         window.addEventListener('resize', () => {
             const aspect = window.innerWidth / window.innerHeight;
             const viewSize = 40;
-            
-            // 메인 카메라 업데이트
             camera.left = -viewSize * aspect; camera.right = viewSize * aspect;
             camera.top = viewSize; camera.bottom = -viewSize;
             camera.updateProjectionMatrix();
-
-            // 시작 화면 카메라 업데이트
             startCam1.aspect = window.innerWidth / window.innerHeight; startCam1.updateProjectionMatrix();
             startCam2.aspect = window.innerWidth / window.innerHeight; startCam2.updateProjectionMatrix();
             startCam3.aspect = window.innerWidth / window.innerHeight; startCam3.updateProjectionMatrix();
-
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
