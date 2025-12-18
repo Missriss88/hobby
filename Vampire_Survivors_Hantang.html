@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>한탕이의 생존 게임 (Vampire Survivors Style)</title>
+    <title>한탕이의 생존 신고 (Vampire Survivors Style)</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #101020; font-family: 'Black Han Sans', sans-serif; user-select: none; }
         
@@ -22,10 +22,12 @@
         .stat-box {
             background: rgba(0, 0, 0, 0.7); padding: 10px 20px; border-radius: 15px;
             color: #fff; border: 2px solid #555; font-size: 20px; text-shadow: 1px 1px 2px black;
+            display: flex; align-items: center; gap: 10px;
         }
         #score { color: #ffd700; }
         #timer { color: #fff; min-width: 60px; text-align: center; }
         #hp-box { color: #ff5555; border-color: #ff5555; }
+        #bomb-box { color: #00ffaa; border-color: #00ffaa; }
 
         /* 경험치 바 */
         #exp-bar-container {
@@ -74,6 +76,12 @@
         }
         button:hover { background: #ddd; }
 
+        /* 필살기 안내 */
+        #ult-guide {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.7); font-size: 18px; text-align: center;
+        }
+
         @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0); } }
 
         /* 데미지 텍스트 */
@@ -81,6 +89,9 @@
             position: absolute; color: white; font-weight: bold; font-size: 20px;
             pointer-events: none; text-shadow: 1px 1px 0 #000;
             animation: popUp 0.8s forwards;
+        }
+        .mincho-text {
+            color: #00ffaa !important; font-size: 24px !important; text-shadow: 0 0 5px #00ffaa;
         }
         @keyframes popUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-30px) scale(0.5); } }
     </style>
@@ -97,8 +108,13 @@
         
         <div id="top-bar">
             <div class="stat-box" id="hp-box">HP <span id="hp-val">100</span></div>
+            <div class="stat-box" id="bomb-box">💣 <span id="bomb-val">1</span> <span id="bomb-cooldown" style="font-size:14px; color:#aaa; margin-left:5px;">(0%)</span></div>
             <div class="stat-box">TIME <span id="timer">00:00</span></div>
             <div class="stat-box">KILL <span id="kill-count">0</span></div>
+        </div>
+        
+        <div id="ult-guide">
+            [SPACE] 필살기: 화면 전체 공격 (5분 쿨타임 / 민초 획득 시 충전)
         </div>
 
         <div id="damage-layer"></div>
@@ -199,7 +215,7 @@
             if(gltf.animations.length > 0) playerMixer.clipAction(gltf.animations[0]).play();
         }, undefined, () => console.log('Player model not found. Using box.'));
 
-        // ★ 적 모델 미리 로드 (파일이 있으면 사용, 없으면 폴백) ★
+        // 적 모델 미리 로드
         loader.load('./male_enemy.glb', (gltf) => { loadedModels.maleEnemy = gltf; }, undefined, () => {});
         loader.load('./female_enemy.glb', (gltf) => { loadedModels.femaleEnemy = gltf; }, undefined, () => {});
 
@@ -217,8 +233,11 @@
         const gameState = {
             isPlaying: true, isPaused: false, time: 0,
             level: 1, exp: 0, maxExp: 10, kills: 0,
-            hp: 100, maxHp: 100
+            hp: 100, maxHp: 100,
+            bombs: 1, // 초기 필살기 개수
+            bombTimer: 0 // 자동 충전 타이머
         };
+        const BOMB_COOLDOWN_TIME = 300; // 300초 = 5분
 
         const playerStats = {
             moveSpeed: 0.15, damageMult: 1.0, pickupRange: 3.0, luck: 1.0
@@ -234,9 +253,10 @@
 
         const enemies = [];
         const projectiles = [];
-        const enemyProjectiles = []; // 적 투사체
+        const enemyProjectiles = []; 
         const gems = [];
-        const keys = { w:false, a:false, s:false, d:false, ArrowUp:false, ArrowLeft:false, ArrowDown:false, ArrowRight:false };
+        const minchos = []; // 민초 아이템 배열
+        const keys = { w:false, a:false, s:false, d:false, ArrowUp:false, ArrowLeft:false, ArrowDown:false, ArrowRight:false, " ": false };
 
         // ==========================================
         // 4. 게임 로직
@@ -244,7 +264,6 @@
         window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = true; });
         window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = false; });
 
-        // ★ 적 생성 로직 (남성형/여성형 분기) ★
         function spawnEnemy() {
             if (gameState.isPaused) return;
 
@@ -252,8 +271,6 @@
             const distance = 15 + Math.random() * 10;
             const x = playerGroup.position.x + Math.cos(angle) * distance;
             const z = playerGroup.position.z + Math.sin(angle) * distance;
-
-            // 70% 확률로 남성형(근거리), 30% 확률로 여성형(원거리)
             const isRanged = Math.random() > 0.7;
             const type = isRanged ? 'female' : 'male';
             
@@ -261,76 +278,52 @@
             let mixer = null;
 
             if (type === 'male') {
-                // 남성형 (근거리)
                 if (loadedModels.maleEnemy) {
-                    // GLB 로드 성공 시
                     enemyMesh = SkeletonUtils.clone(loadedModels.maleEnemy.scene);
                     enemyMesh.scale.set(1, 1, 1);
-                    // 애니메이션 믹서 생성 필요 시 추가
                     const clips = loadedModels.maleEnemy.animations;
-                    if(clips && clips.length > 0) {
-                        mixer = new THREE.AnimationMixer(enemyMesh);
-                        mixer.clipAction(clips[0]).play(); // 걷기 모션 가정
-                    }
+                    if(clips && clips.length > 0) { mixer = new THREE.AnimationMixer(enemyMesh); mixer.clipAction(clips[0]).play(); }
                 } else {
-                    // 폴백: 파란색 박스
                     const geo = new THREE.BoxGeometry(1, 1.5, 1);
                     const mat = new THREE.MeshStandardMaterial({ color: 0x3366ff });
                     enemyMesh = new THREE.Mesh(geo, mat);
                     enemyMesh.position.y = 0.75;
                 }
             } else {
-                // 여성형 (원거리)
                 if (loadedModels.femaleEnemy) {
-                    // GLB 로드 성공 시
                     enemyMesh = SkeletonUtils.clone(loadedModels.femaleEnemy.scene);
                     enemyMesh.scale.set(1, 1, 1);
                     const clips = loadedModels.femaleEnemy.animations;
-                    if(clips && clips.length > 0) {
-                        mixer = new THREE.AnimationMixer(enemyMesh);
-                        mixer.clipAction(clips[0]).play();
-                    }
+                    if(clips && clips.length > 0) { mixer = new THREE.AnimationMixer(enemyMesh); mixer.clipAction(clips[0]).play(); }
                 } else {
-                    // 폴백: 분홍색 실린더
                     const geo = new THREE.CylinderGeometry(0.4, 0.4, 1.5, 12);
                     const mat = new THREE.MeshStandardMaterial({ color: 0xff66cc });
                     enemyMesh = new THREE.Mesh(geo, mat);
                     enemyMesh.position.y = 0.75;
                 }
             }
-
-            // 그림자 설정
             enemyMesh.traverse(o => { if(o.isMesh) o.castShadow = true; });
-
-            enemyMesh.position.set(x, 0, z); // 모델 원점에 따라 y조정 필요할 수 있음
-            if (!loadedModels[type + 'Enemy']) enemyMesh.position.y = 0.75; // 폴백 도형일 때만
+            enemyMesh.position.set(x, 0, z);
+            if (!loadedModels[type + 'Enemy']) enemyMesh.position.y = 0.75;
 
             let hp = 15 + (gameState.time * 0.5);
-            if (isRanged) hp *= 0.7; // 원거리는 체력이 좀 적음
+            if (isRanged) hp *= 0.7;
 
-            enemyMesh.userData = { 
-                type: type, // 'male' or 'female'
-                hp: hp, 
-                maxHp: hp, 
-                speed: isRanged ? 0.04 : 0.05,
-                attackCooldown: 0,
-                mixer: mixer
-            };
-            
+            enemyMesh.userData = { type: type, hp: hp, maxHp: hp, speed: isRanged ? 0.04 : 0.05, attackCooldown: 0, mixer: mixer };
             scene.add(enemyMesh);
             enemies.push(enemyMesh);
         }
 
-        function createDamageText(position, damage) {
+        function createDamageText(position, damage, isMincho = false) {
             const div = document.createElement('div');
-            div.className = 'damage-text';
-            div.innerText = Math.floor(damage);
+            div.className = isMincho ? 'damage-text mincho-text' : 'damage-text';
+            div.innerText = isMincho ? "민초 획득! (+1 필살기)" : Math.floor(damage);
             const vec = position.clone().project(camera);
             const x = (vec.x * .5 + .5) * window.innerWidth;
             const y = (-(vec.y * .5) + .5) * window.innerHeight;
             div.style.left = `${x}px`; div.style.top = `${y}px`;
             document.getElementById('damage-layer').appendChild(div);
-            setTimeout(() => div.remove(), 800);
+            setTimeout(() => div.remove(), 1200);
         }
 
         function spawnGem(position, value) {
@@ -339,6 +332,36 @@
             const gem = new THREE.Mesh(geo, mat);
             gem.position.copy(position); gem.position.y = 0.5; gem.userData = { value: value };
             scene.add(gem); gems.push(gem);
+        }
+
+        // 민초 아이템 생성 (민트색 구체 + 초코 칩)
+        function spawnMincho(position) {
+            const group = new THREE.Group();
+            
+            // 민트 아이스크림
+            const iceGeo = new THREE.SphereGeometry(0.4, 16, 16);
+            const iceMat = new THREE.MeshStandardMaterial({ color: 0x00ffaa, roughness: 0.5 });
+            const ice = new THREE.Mesh(iceGeo, iceMat);
+            group.add(ice);
+
+            // 초코칩
+            const chipGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            const chipMat = new THREE.MeshStandardMaterial({ color: 0x3e2723 });
+            for(let i=0; i<5; i++) {
+                const chip = new THREE.Mesh(chipGeo, chipMat);
+                chip.position.set(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(0.35);
+                group.add(chip);
+            }
+
+            group.position.copy(position);
+            group.position.y = 0.5;
+            
+            // 빛나는 효과
+            const light = new THREE.PointLight(0x00ffaa, 1, 3);
+            group.add(light);
+
+            scene.add(group);
+            minchos.push(group);
         }
 
         function getNearestEnemy() {
@@ -350,7 +373,52 @@
             return { enemy: nearest, dist: minDist };
         }
 
-        // --- 플레이어 무기 발사 ---
+        // --- 필살기 사용 ---
+        function useBomb() {
+            if (gameState.bombs <= 0) return;
+            gameState.bombs--;
+            updateBombUI();
+
+            // 1. 화면 전체 적 섬멸
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                spawnGem(enemy.position, 1);
+                gameState.kills++;
+                scene.remove(enemy);
+                enemies.splice(i, 1);
+            }
+            document.getElementById('kill-count').innerText = gameState.kills;
+
+            // 2. 적 투사체 제거
+            for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+                scene.remove(enemyProjectiles[i]);
+            }
+            enemyProjectiles.length = 0;
+
+            // 3. 시각 효과 (거대한 폭발)
+            const blastGeo = new THREE.SphereGeometry(1, 32, 32);
+            const blastMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+            const blast = new THREE.Mesh(blastGeo, blastMat);
+            blast.position.copy(playerGroup.position);
+            scene.add(blast);
+
+            // 애니메이션을 위해 배열에 추가하지 않고 즉시 처리 (간단하게)
+            let scale = 1;
+            const expandInterval = setInterval(() => {
+                scale += 2;
+                blast.scale.set(scale, scale, scale);
+                blast.material.opacity -= 0.05;
+                if (blast.material.opacity <= 0) {
+                    clearInterval(expandInterval);
+                    scene.remove(blast);
+                }
+            }, 16);
+        }
+
+        function updateBombUI() {
+            document.getElementById('bomb-val').innerText = gameState.bombs;
+        }
+
         function fireWeapons(delta) {
             if (inventory.qrBeam.active) {
                 inventory.qrBeam.lastShot += delta;
@@ -398,27 +466,14 @@
             scene.add(paper); projectiles.push(paper);
         }
 
-        // --- 적 투사체 (하트) 발사 ---
         function enemyShootHeart(enemy) {
-            // 빨간 하트(구체)
             const geo = new THREE.SphereGeometry(0.4, 8, 8);
             const mat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0x550000 });
             const heart = new THREE.Mesh(geo, mat);
-            
-            heart.position.copy(enemy.position);
-            heart.position.y = 1;
-
-            // 플레이어 방향
+            heart.position.copy(enemy.position); heart.position.y = 1;
             const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position).normalize();
-            
-            heart.userData = {
-                velocity: dir.multiplyScalar(0.15), // 탄속
-                damage: 10,
-                duration: 4
-            };
-            
-            scene.add(heart);
-            enemyProjectiles.push(heart);
+            heart.userData = { velocity: dir.multiplyScalar(0.15), damage: 10, duration: 4 };
+            scene.add(heart); enemyProjectiles.push(heart);
         }
 
         function takeDamage(enemy, amount) {
@@ -431,6 +486,10 @@
 
             if (enemy.userData.hp <= 0) {
                 spawnGem(enemy.position, 1);
+                
+                // 민초 드랍 (1% 확률)
+                if (Math.random() < 0.01) spawnMincho(enemy.position);
+
                 gameState.kills++;
                 document.getElementById('kill-count').innerText = gameState.kills;
                 scene.remove(enemy);
@@ -442,10 +501,8 @@
         function damagePlayer(amount) {
             gameState.hp = Math.max(0, gameState.hp - amount);
             document.getElementById('hp-val').innerText = Math.floor(gameState.hp);
-            
-            // 플레이어 피격 효과 (빨간색 깜빡)
             if(playerGroup.children[0]) {
-                const mesh = playerGroup.children[0]; // 모델 또는 박스
+                const mesh = playerGroup.children[0];
                 mesh.traverse(o => {
                     if(o.isMesh) {
                         const oldColor = o.material.color.getHex();
@@ -454,11 +511,9 @@
                     }
                 });
             }
-
             if (gameState.hp <= 0) gameOver();
         }
 
-        // --- 레벨업 시스템 ---
         function checkLevelUp() {
             if (gameState.exp >= gameState.maxExp) {
                 gameState.exp -= gameState.maxExp;
@@ -490,7 +545,6 @@
                 const item = inventory[opt.key];
                 let btnText = item.level === 0 ? "신규 습득" : `Lv.${item.level} -> Lv.${item.level+1}`;
                 if (item.type === 'passive') btnText = "강화";
-                
                 const card = document.createElement('div');
                 card.className = 'upgrade-card';
                 card.innerHTML = `<div class="card-icon">${opt.icon}</div><div class="card-name">${opt.title}</div><div class="card-desc">${opt.desc}</div><div class="card-level">${btnText}</div>`;
@@ -537,6 +591,24 @@
 
             const delta = clock.getDelta();
 
+            // 필살기 입력 (스페이스바)
+            if (keys[' ']) {
+                useBomb();
+                keys[' '] = false; // 한 번만 실행
+            }
+
+            // 필살기 자동 충전
+            gameState.bombTimer += delta;
+            if (gameState.bombTimer >= BOMB_COOLDOWN_TIME) {
+                gameState.bombs++;
+                gameState.bombTimer = 0;
+                updateBombUI();
+            }
+            // 쿨타임 퍼센트 UI
+            const bombPct = Math.min(100, Math.floor((gameState.bombTimer / BOMB_COOLDOWN_TIME) * 100));
+            document.getElementById('bomb-cooldown').innerText = `(${bombPct}%)`;
+
+
             // 플레이어 이동
             const moveDir = new THREE.Vector3(0, 0, 0);
             if (keys.w || keys.ArrowUp) moveDir.z -= 1;
@@ -563,7 +635,7 @@
             fireWeapons(delta);
             if (playerMixer) playerMixer.update(delta);
 
-            // 투사체 업데이트 (플레이어)
+            // 투사체 업데이트
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i];
                 p.position.add(p.userData.velocity);
@@ -584,13 +656,11 @@
                 }
             }
 
-            // 적 투사체 업데이트 (하트)
+            // 적 투사체
             for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
                 const ep = enemyProjectiles[i];
                 ep.position.add(ep.userData.velocity);
                 ep.userData.duration -= delta;
-                
-                // 플레이어 충돌 체크
                 const pDist = ep.position.distanceTo(playerGroup.position);
                 if (pDist < 1.0) {
                     damagePlayer(ep.userData.damage);
@@ -598,32 +668,24 @@
                     enemyProjectiles.splice(i, 1);
                     continue;
                 }
-
                 if (ep.userData.duration <= 0) { scene.remove(ep); enemyProjectiles.splice(i, 1); }
             }
 
-            // 적 AI (근거리 vs 원거리)
+            // 적 AI
             enemies.forEach(enemy => {
                 if (enemy.userData.mixer) enemy.userData.mixer.update(delta);
-                
                 const distToPlayer = enemy.position.distanceTo(playerGroup.position);
                 const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position).normalize();
 
                 if (enemy.userData.type === 'male') {
-                    // 근거리: 닥돌
                     enemy.position.add(dir.multiplyScalar(enemy.userData.speed));
-                    if (distToPlayer < 0.8) damagePlayer(0.5); // 몸박 데미지
+                    if (distToPlayer < 0.8) damagePlayer(0.5);
                 } else {
-                    // 원거리: 거리 유지 및 발사
-                    if (distToPlayer > 8) {
-                        enemy.position.add(dir.multiplyScalar(enemy.userData.speed));
-                    }
-                    
-                    // 공격 쿨다운 체크
+                    if (distToPlayer > 8) enemy.position.add(dir.multiplyScalar(enemy.userData.speed));
                     enemy.userData.attackCooldown -= delta;
                     if (enemy.userData.attackCooldown <= 0 && distToPlayer < 12) {
                         enemyShootHeart(enemy);
-                        enemy.userData.attackCooldown = 2.0; // 2초 쿨다운
+                        enemy.userData.attackCooldown = 2.0;
                     }
                 }
                 enemy.lookAt(playerGroup.position);
@@ -638,6 +700,22 @@
                     gem.position.add(dir.multiplyScalar(0.3));
                     if (dist < 0.5) { gameState.exp += gem.userData.value; scene.remove(gem); gems.splice(i, 1); checkLevelUp(); }
                 } else { gem.rotation.y += 0.05; }
+            }
+
+            // 민초 습득
+            for (let i = minchos.length - 1; i >= 0; i--) {
+                const m = minchos[i];
+                const dist = playerGroup.position.distanceTo(m.position);
+                if (dist < playerStats.pickupRange) {
+                    const dir = new THREE.Vector3().subVectors(playerGroup.position, m.position).normalize();
+                    m.position.add(dir.multiplyScalar(0.3));
+                    if (dist < 0.5) { 
+                        gameState.bombs++;
+                        updateBombUI();
+                        createDamageText(playerGroup.position, 0, true); // 텍스트 띄우기
+                        scene.remove(m); minchos.splice(i, 1); 
+                    }
+                } else { m.rotation.y += 0.05; }
             }
 
             renderer.render(scene, camera);
