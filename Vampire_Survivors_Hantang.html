@@ -18,6 +18,7 @@
         #top-bar {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 20px; align-items: center;
+            opacity: 0; transition: opacity 0.5s; /* 시작 전엔 숨김 */
         }
         .stat-box {
             background: rgba(0, 0, 0, 0.7); padding: 10px 20px; border-radius: 15px;
@@ -32,12 +33,39 @@
         /* 경험치 바 */
         #exp-bar-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: #333; z-index: 10;
+            opacity: 0; transition: opacity 0.5s;
         }
         #exp-bar {
             width: 0%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); transition: width 0.2s;
         }
         #level-indicator {
             position: absolute; top: 15px; right: 20px; color: #00f2fe; font-size: 30px; text-shadow: 2px 2px 0 #000;
+            opacity: 0; transition: opacity 0.5s;
+        }
+
+        /* 시작 화면 */
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4); 
+            z-index: 300; pointer-events: auto;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            backdrop-filter: blur(2px);
+        }
+        .start-title {
+            font-size: 80px; color: #ffd700; text-shadow: 0 0 20px #ff5500;
+            margin-bottom: 20px; animation: float 3s infinite ease-in-out;
+        }
+        .start-btn {
+            padding: 20px 60px; font-size: 30px; background: linear-gradient(45deg, #ff0055, #ff5500);
+            color: white; border: 4px solid white; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Black Han Sans', sans-serif;
+        }
+        .start-btn:hover { transform: scale(1.1); box-shadow: 0 0 40px rgba(255, 0, 85, 0.8); }
+        .camera-label-container {
+            position: absolute; bottom: 10%; width: 100%; display: flex; justify-content: space-around;
+            pointer-events: none; color: rgba(255,255,255,0.5); font-size: 20px;
         }
 
         /* 레벨업 선택창 */
@@ -80,6 +108,7 @@
         #ult-guide {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             color: rgba(255,255,255,0.7); font-size: 18px; text-align: center;
+            opacity: 0; transition: opacity 0.5s;
         }
 
         @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0); } }
@@ -98,6 +127,34 @@
             text-shadow: 1px 1px 2px #000; z-index: 5;
         }
         @keyframes popUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(0.8); } }
+
+        /* 체력바 스타일 */
+        .hp-bar-container {
+            position: absolute;
+            width: 50px; height: 6px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #000;
+            border-radius: 3px;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            display: none; /* JS로 제어 */
+        }
+        .hp-bar-fill {
+            height: 100%;
+            background: #ff0000;
+            width: 100%;
+            border-radius: 2px;
+            transition: width 0.1s;
+        }
+        .player-hp-bar .hp-bar-fill {
+            background: #00ff00; /* 플레이어는 초록색 */
+        }
+        .boss-hp-bar {
+            width: 100px; height: 10px; border: 2px solid #ffaa00;
+        }
+        .boss-hp-bar .hp-bar-fill {
+            background: #ffaa00;
+        }
     </style>
 </head>
 <body>
@@ -122,7 +179,19 @@
         </div>
 
         <div id="damage-layer"></div>
-        <!-- hp-bars-layer 제거 (성능 최적화 위해 3D 체력바로 대체) -->
+        <!-- hp-bars-layer: 3D 체력바로 대체되어 돔 요소는 제거하지 않고 그대로 두되 게임 시작 전에는 숨김 처리 -->
+        <div id="hp-bars-layer" style="display:none"></div> 
+    </div>
+
+    <!-- 시작 화면 -->
+    <div id="start-screen">
+        <div class="start-title">한탕이의 생존 신고</div>
+        <button class="start-btn" id="start-btn">생존 시작</button>
+        <div class="camera-label-container">
+            <div>CAM 1: 얼짱 각도</div>
+            <div>CAM 2: 전신 스캔</div>
+            <div>CAM 3: 위성 감시</div>
+        </div>
     </div>
 
     <!-- 레벨업 모달 -->
@@ -159,6 +228,7 @@
         scene.background = new THREE.Color(0x1a1a2e); 
         scene.fog = new THREE.Fog(0x1a1a2e, 20, 60);
 
+        // 메인 게임 카메라 (Orthographic)
         const camera = new THREE.OrthographicCamera(
             window.innerWidth / -40, window.innerWidth / 40,
             window.innerHeight / 40, window.innerHeight / -40,
@@ -168,6 +238,20 @@
         camera.lookAt(0, 0, 0);
         camera.zoom = 1.2;
         camera.updateProjectionMatrix();
+
+        // ★ 시작 화면용 카메라 3개 생성 (Perspective) ★
+        const startCam1 = new THREE.PerspectiveCamera(45, window.innerWidth / 3 / window.innerHeight, 0.1, 100);
+        startCam1.position.set(2, 1.5, 2); // 얼굴/상체 근접
+        startCam1.lookAt(0, 1, 0);
+
+        const startCam2 = new THREE.PerspectiveCamera(45, window.innerWidth / 3 / window.innerHeight, 0.1, 100);
+        startCam2.position.set(0, 2, 6); // 전신 정면
+        startCam2.lookAt(0, 1, 0);
+
+        const startCam3 = new THREE.PerspectiveCamera(45, window.innerWidth / 3 / window.innerHeight, 0.1, 100);
+        startCam3.position.set(0, 10, 0); // 완전 탑뷰
+        startCam3.lookAt(0, 0, 0);
+
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -211,23 +295,24 @@
 
         // ★ 최적화: 3D 체력바 지오메트리 및 재질 미리 생성 (공유) ★
         const hpBarBgGeo = new THREE.PlaneGeometry(1, 0.15);
-        const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x333333, depthTest: false }); // 배경 (회색)
+        const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x333333, depthTest: false }); 
         
         const hpBarFgGeo = new THREE.PlaneGeometry(1, 0.15);
-        hpBarFgGeo.translate(0.5, 0, 0); // 왼쪽 기준 스케일링을 위해 이동
-        const hpBarFgMatRed = new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false }); // 적군 (빨강)
-        const hpBarFgMatGreen = new THREE.MeshBasicMaterial({ color: 0x00ff00, depthTest: false }); // 플레이어 (초록)
-        const hpBarFgMatBoss = new THREE.MeshBasicMaterial({ color: 0xffaa00, depthTest: false }); // 보스 (주황)
+        hpBarFgGeo.translate(0.5, 0, 0); 
+        const hpBarFgMatRed = new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false }); 
+        const hpBarFgMatGreen = new THREE.MeshBasicMaterial({ color: 0x00ff00, depthTest: false }); 
+        const hpBarFgMatBoss = new THREE.MeshBasicMaterial({ color: 0xffaa00, depthTest: false }); 
 
         // 플레이어용 3D 체력바 생성
         const playerHpBarGroup = new THREE.Group();
         playerHpBarGroup.position.y = 2.0;
         const pBg = new THREE.Mesh(hpBarBgGeo, hpBarBgMat);
         const pFg = new THREE.Mesh(hpBarFgGeo, hpBarFgMatGreen);
-        pFg.position.x = -0.5; // 배경 왼쪽 끝에서 시작하도록 맞춤 (지오메트리가 0.5 이동되어 있으므로)
-        pFg.position.z = 0.01; // z-fighting 방지
+        pFg.position.x = -0.5; 
+        pFg.position.z = 0.01; 
         playerHpBarGroup.add(pBg, pFg);
         playerGroup.add(playerHpBarGroup);
+        playerHpBarGroup.visible = false; // 게임 시작 전엔 숨김
 
         let playerMixer;
         loader.load('./player.glb', (gltf) => {
@@ -255,6 +340,7 @@
         // 3. 게임 상태 및 변수
         // ==========================================
         const gameState = {
+            gameStarted: false, // 게임 시작 여부 플래그
             isPlaying: true, isPaused: false, time: 0,
             level: 1, exp: 0, maxExp: 10, kills: 0,
             hp: 100, maxHp: 100,
@@ -307,20 +393,32 @@
         window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = true; });
         window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) keys[e.key] = false; });
 
+        // 게임 시작 버튼 이벤트
+        document.getElementById('start-btn').addEventListener('click', () => {
+            gameState.gameStarted = true;
+            document.getElementById('start-screen').style.display = 'none';
+            // UI 보이기
+            document.getElementById('top-bar').style.opacity = '1';
+            document.getElementById('exp-bar-container').style.opacity = '1';
+            document.getElementById('level-indicator').style.opacity = '1';
+            document.getElementById('ult-guide').style.opacity = '1';
+            document.getElementById('hp-bars-layer').style.display = 'block';
+            playerHpBarGroup.visible = true;
+        });
+
         function update3DHpBar(mesh, hp, maxHp) {
-            // 자식 중 HP Bar 그룹 찾기
             const barGroup = mesh.children.find(c => c.userData.isHpBar);
             if (barGroup) {
                 const fg = barGroup.children[1];
                 const pct = Math.max(0, hp / maxHp);
                 fg.scale.x = pct;
-                barGroup.lookAt(camera.position); // 항상 카메라 정면 보기 (빌보드)
+                barGroup.lookAt(camera.position); 
             }
         }
 
         function create3DHpBar(type) {
             const group = new THREE.Group();
-            group.userData.isHpBar = true; // 식별용 태그
+            group.userData.isHpBar = true; 
             
             const bg = new THREE.Mesh(hpBarBgGeo, hpBarBgMat);
             
@@ -330,7 +428,7 @@
 
             if (type === 'boss') {
                 mat = hpBarFgMatBoss;
-                scaleY = 2; // 보스는 두껍게
+                scaleY = 2; 
                 width = 3;
             }
 
@@ -339,7 +437,7 @@
             fg.position.z = 0.01;
             
             bg.scale.set(width, scaleY, 1);
-            fg.scale.set(width, scaleY, 1); // 초기 스케일 (가득 참) - 단, x는 나중에 update로 조절됨
+            fg.scale.set(width, scaleY, 1); 
 
             group.add(bg, fg);
             return group;
@@ -347,7 +445,7 @@
 
         function spawnEnemy(isBoss = false) {
             if (gameState.isPaused) return;
-            if (enemies.length >= MAX_ENEMIES && !isBoss) return; // 적 숫자 제한
+            if (enemies.length >= MAX_ENEMIES && !isBoss) return; 
 
             const angle = Math.random() * Math.PI * 2;
             const distance = 15 + Math.random() * 10;
@@ -396,7 +494,6 @@
                 }
             }
             
-            // 그림자 - 성능을 위해 보스만 true, 일반 몹은 끄거나 유지 (여기선 유지하되, 너무 느리면 끄기)
             enemyMesh.traverse(o => { if(o.isMesh) o.castShadow = true; });
             
             enemyMesh.position.set(x, isBoss ? 2 : 0, z);
@@ -491,6 +588,9 @@
             updateBombUI();
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
+                // HP바 제거 (3D라 scene.remove(enemy) 하면 자동 삭제되지만 명시적으로 참조 끊기)
+                // enemy.userData.hpBar... 는 child이므로 함께 삭제됨.
+                
                 spawnGem(enemy.position, 1);
                 gameState.kills++;
                 scene.remove(enemy);
@@ -698,6 +798,8 @@
         const clock = new THREE.Clock();
         
         setInterval(() => {
+            // ★ 게임 시작 전엔 타이머/스폰 멈춤 ★
+            if (!gameState.gameStarted) return; 
             if (!gameState.isPlaying || gameState.isPaused) return;
             // 적 생성 물량 대폭 증가
             const spawnCount = 2 + Math.floor(gameState.time / 20); 
@@ -721,9 +823,43 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            if (!gameState.isPlaying || gameState.isPaused) return;
-
             const delta = clock.getDelta();
+
+            // ★ 1. 게임 시작 전: 쇼케이스 (멀티 카메라 뷰) ★
+            if (!gameState.gameStarted) {
+                // 플레이어 애니메이션 업데이트
+                if (playerMixer) playerMixer.update(delta);
+                // 플레이어 살짝 회전
+                playerGroup.rotation.y += delta * 0.5;
+
+                // 화면 3분할 렌더링
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                const third = Math.floor(w / 3);
+
+                renderer.setScissorTest(true);
+
+                // 왼쪽 (얼굴/상체)
+                renderer.setViewport(0, 0, third, h);
+                renderer.setScissor(0, 0, third, h);
+                renderer.render(scene, startCam1);
+
+                // 중앙 (전신)
+                renderer.setViewport(third, 0, third, h);
+                renderer.setScissor(third, 0, third, h);
+                renderer.render(scene, startCam2);
+
+                // 오른쪽 (탑뷰)
+                renderer.setViewport(third * 2, 0, third, h);
+                renderer.setScissor(third * 2, 0, third, h);
+                renderer.render(scene, startCam3);
+
+                renderer.setScissorTest(false);
+                return; // 게임 로직 건너뜀
+            }
+
+            // ★ 2. 게임 시작 후: 정상 게임 루프 ★
+            if (!gameState.isPlaying || gameState.isPaused) return;
 
             if (keys[' ']) {
                 useBomb();
@@ -774,13 +910,10 @@
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     const enemy = enemies[j];
                     // ★ 2D 거리 체크로 변경 (Y축 무시) ★
-                    // p.position (투사체) vs enemy.position (적)
-                    // 투사체가 공중(y=1)에 있고 적은 바닥(y=0)에 있어도 x, z 거리만 가까우면 맞음
                     const dx = p.position.x - enemy.position.x;
                     const dz = p.position.z - enemy.position.z;
                     const distSq = dx*dx + dz*dz;
                     
-                    // 반경 1.5 (거리제곱 2.25) 이내면 충돌
                     if (distSq < 2.25) {
                         if (p.userData.hitList && p.userData.hitList.includes(enemy.id)) continue;
                         
@@ -873,9 +1006,17 @@
         window.addEventListener('resize', () => {
             const aspect = window.innerWidth / window.innerHeight;
             const viewSize = 40;
+            
+            // 메인 카메라 업데이트
             camera.left = -viewSize * aspect; camera.right = viewSize * aspect;
             camera.top = viewSize; camera.bottom = -viewSize;
             camera.updateProjectionMatrix();
+
+            // 시작 화면 카메라 업데이트
+            startCam1.aspect = window.innerWidth / 3 / window.innerHeight; startCam1.updateProjectionMatrix();
+            startCam2.aspect = window.innerWidth / 3 / window.innerHeight; startCam2.updateProjectionMatrix();
+            startCam3.aspect = window.innerWidth / 3 / window.innerHeight; startCam3.updateProjectionMatrix();
+
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
