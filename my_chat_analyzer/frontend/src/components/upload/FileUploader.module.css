@@ -1,0 +1,245 @@
+.uploader {
+    position: relative;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-surface);
+    border: 2px dashed var(--color-bg-tertiary);
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    overflow: hidden;
+}
+
+.uploader::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(254, 229, 0, 0.05) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+}
+
+.uploader:hover::before,
+.uploader.dragOver::before {
+    opacity: 1;
+}
+
+.uploader:hover,
+.uploader.dragOver {
+    border-color: var(--color-primary);
+    background: var(--color-surface-hover);
+}
+
+.uploader.hasError {
+    border-color: var(--color-error);
+}
+
+.hiddenInput {
+    display: none;
+}
+
+/* Idle State */
+.idleState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    text-align: center;
+    padding: var(--space-2xl);
+}
+
+.uploadIcon {
+    color: var(--color-primary);
+    opacity: 0.8;
+}
+
+.idleState h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+}
+
+.idleState p {
+    color: var(--color-text-secondary);
+}
+
+.hint {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    background: var(--color-bg-tertiary);
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+}
+
+/* Selected State */
+.selectedState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: var(--space-2xl);
+}
+
+.fileIcon {
+    color: var(--color-primary);
+}
+
+.fileInfo {
+    text-align: center;
+}
+
+.fileInfo h3 {
+    font-size: var(--font-size-lg);
+    word-break: break-all;
+}
+
+.fileInfo p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.actions {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.cancelButton {
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+}
+
+.cancelButton:hover {
+    background: var(--color-surface-hover);
+}
+
+.analyzeButton {
+    padding: var(--space-sm) var(--space-xl);
+    background: var(--gradient-primary);
+    color: var(--color-accent);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+}
+
+.analyzeButton:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Loading State */
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-2xl);
+    text-align: center;
+}
+
+.spinner {
+    color: var(--color-primary);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingState h3 {
+    font-size: var(--font-size-lg);
+}
+
+.loadingState p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.progressBar {
+    width: 200px;
+    height: 4px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+}
+
+/* Complete State */
+.completeState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-2xl);
+    text-align: center;
+}
+
+.successIcon {
+    color: var(--color-success);
+}
+
+.completeState h3 {
+    color: var(--color-success);
+}
+
+/* Error State */
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-2xl);
+    text-align: center;
+}
+
+.errorIcon {
+    color: var(--color-error);
+}
+
+.errorState h3 {
+    color: var(--color-error);
+}
+
+.errorState p {
+    color: var(--color-text-secondary);
+}
+
+.retryButton {
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-error);
+    color: white;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+}
+
+.retryButton:hover {
+    opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .uploader {
+        min-height: 250px;
+    }
+
+    .idleState,
+    .selectedState,
+    .loadingState,
+    .completeState,
+    .errorState {
+        padding: var(--space-xl);
+    }
+}

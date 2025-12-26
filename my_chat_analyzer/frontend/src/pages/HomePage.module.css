@@ -1,0 +1,186 @@
+.page {
+    padding-bottom: var(--space-3xl);
+}
+
+/* Hero Section */
+.hero {
+    position: relative;
+    text-align: center;
+    padding: var(--space-3xl) 0;
+}
+
+.heroGlow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(254, 229, 0, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.hero h1 {
+    font-size: var(--font-size-5xl);
+    font-weight: 700;
+    margin-bottom: var(--space-lg);
+    line-height: 1.2;
+}
+
+.highlight {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+}
+
+/* Upload Section */
+.uploadSection {
+    max-width: 700px;
+    margin: 0 auto var(--space-3xl);
+}
+
+/* Features Section */
+.features {
+    margin-bottom: var(--space-3xl);
+}
+
+.sectionTitle {
+    text-align: center;
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--space-xl);
+    color: var(--color-text);
+}
+
+.featureGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+}
+
+.featureCard {
+    background: var(--color-surface);
+    border: 1px solid var(--color-bg-tertiary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    text-align: center;
+    transition: all var(--transition-normal);
+}
+
+.featureCard:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 30px rgba(254, 229, 0, 0.1);
+}
+
+.featureIcon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto var(--space-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-md);
+    color: var(--color-accent);
+}
+
+.featureCard h3 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-sm);
+}
+
+.featureCard p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+/* How To Section */
+.howTo {
+    background: var(--color-surface);
+    border: 1px solid var(--color-bg-tertiary);
+    border-radius: var(--radius-xl);
+    padding: var(--space-2xl);
+}
+
+.steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+}
+
+.step {
+    flex: 1;
+    max-width: 200px;
+    text-align: center;
+}
+
+.stepNumber {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto var(--space-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-primary);
+    color: var(--color-accent);
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    border-radius: var(--radius-full);
+}
+
+.step h4 {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-xs);
+}
+
+.step p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.stepArrow {
+    color: var(--color-primary);
+    font-size: var(--font-size-2xl);
+    font-weight: 300;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .featureGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: var(--font-size-3xl);
+    }
+
+    .subtitle br {
+        display: none;
+    }
+
+    .featureGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .steps {
+        flex-direction: column;
+    }
+
+    .stepArrow {
+        transform: rotate(90deg);
+    }
+
+    .step {
+        max-width: 100%;
+    }
+}
